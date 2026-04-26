@@ -1,59 +1,125 @@
-# Cypress Launcher
+# Cypress
 
-The user-facing desktop app for [Cypress](https://github.com/PvZ-Cypress) - dedicated servers for Plants vs. Zombies: Garden Warfare 1, Garden Warfare 2, and Battle for Neighborville.
+Dedicated servers for Plants vs. Zombies: Garden Warfare 1, Garden Warfare 2, and Battle for Neighborville.
 
-Built with [Photino.NET](https://www.tryphotino.io/) (HTML/CSS/JS frontend, C# backend) on .NET 8.
+Monorepo containing the desktop launcher, server DLL, and backend tools. Server DLL based on [KYBER](https://github.com/ArmchairDevelopers/Kyber) (Star Wars: Battlefront II private servers).
+
+## Structure
+
+| Directory | Description |
+|-----------|-------------|
+| `CypressLauncher/` | C# backend (Photino.NET, .NET 8) |
+| `wwwroot/` | Frontend (HTML/CSS/JS) |
+| `Server/` | C++ server DLL injected into the game |
+| `tools/` | Master server, relay server (Go) |
+| `Docs/` | Hosting/joining/playlist guides |
 
 ## Features
 
 - **Join** servers by IP or through the server browser
-- **Host** dedicated servers with full game mode and level selection
+- **Host** dedicated servers with up to **48+ players** (vs 24 stock)
 - **Server Browser** with master server registration and heartbeats
 - **Playlist Editor** for custom level rotations
-- **Relay Support** (EU relay toggle) for NAT traversal without port forwarding
+- **Relay Support** for NAT traversal without port forwarding
 - **Moderator Panel** for managing players, kicks, and bans
 - **MOTD Editor** with rich text formatting and color gradients
-- **Anticheat Toggles** for server-side cheat detection modules
+- **Anticheat** server-side cheat detection modules
 - **Multi-instance** management, run multiple servers/clients from one launcher
-- **Side-channel** TCP protocol for remote instance monitoring
-- **Smart Pickers** for level, mode, map backgrounds, and character art
+- **Side-channel** TCP protocol with HMAC challenge-response auth
+- **Hardware fingerprint bans** (HWID + component-based tracking)
+- **Headless thin-client** mode (server without rendering)
 
 ## Supported Games
 
-| Game | Version | Notes |
-|------|---------|-------|
-| Garden Warfare 1 | v1.0.3.0 | |
-| Garden Warfare 2 | v1.0.12 | Requires PreEAAC patched executable |
-| Battle for Neighborville | Latest | Requires PreEAAC patched executable |
+| Game | Version | Server DLL |
+|------|---------|-----------|
+| Garden Warfare 1 | v1.0.3.0 | `cypress_GW1.dll` |
+| Garden Warfare 2 | v1.0.12 (PreEAAC) | `cypress_GW2.dll` |
+| Battle for Neighborville | Latest (PreEAAC) | `cypress_BFN.dll` |
 
 ## Prerequisites
 
-- Windows 10+ (Linux is not officially supported, but you may try with Wine/Proton)
+- Windows 10+
 - .NET 8.0 Runtime
 - A legally owned copy of the game (EA Desktop)
-- [Cypress Server DLLs](https://github.com/PvZ-Cypress/Server) (included in releases)
 
 ## Building
 
-**Requirements:** Visual Studio 2022+ with the .NET desktop development workload, or just the .NET 8 SDK.
+**Requirements:** Visual Studio 2022+ with both the .NET desktop and C++ desktop development workloads.
 
 ```powershell
-# Build via script
+# build everything (launcher + server DLLs)
 .\build.ps1
 
-# Or manually
+# or build individually
 dotnet publish CypressLauncher.csproj -c Release -f net8.0-windows -o build /p:LangVersion=latest
+cd Server; .\build.ps1
+cd Server; .\build.ps1 -Game GW2              # single game
+cd Server; .\build.ps1 -Game GW2 -Configuration Debug
 ```
 
-Output goes to `build/`. You'll also need `courgette.exe`, the `.patch` files, and the server DLLs in the same directory for a working release.
+Or open `Server/Cypress.sln` in Visual Studio, pick a configuration (e.g. `Release - GW2 | x64`), and build.
+
+### Server Build Configurations
+
+Each game has its own configuration via preprocessor defines (`CYPRESS_GW1`, `CYPRESS_GW2`, `CYPRESS_BFN`):
+
+| Configuration | Output |
+|--------------|--------|
+| `Release - GW1 \| x64` | `cypress_GW1.dll` |
+| `Release - GW2 \| x64` | `cypress_GW2.dll` |
+| `Release - BFN \| x64` | `cypress_BFN.dll` |
+
+## How It Works
+
+1. Server DLL is placed in the game directory as `dinput8.dll` (DirectInput hijack)
+2. Game loads the DLL, which installs [MinHook](https://github.com/tsudakageyu/minhook) hooks into Frostbite engine functions
+3. Hooks reimplement dedicated server functionality (player connections, level loading, console commands)
+4. A side-channel TCP protocol provides real-time events to the launcher
+
+## Server Project Structure
+
+```
+Server/
+  Source/
+    Core/
+      Program.h/cpp         # entry point, DLL lifecycle, stdin command reader
+      Server.h/cpp          # server management, player tracking, status UI
+      Client.h/cpp          # client state, side-channel TCP, HWID generation
+      Logging.h/cpp         # JSON + colored console logging
+      Console/              # game-specific console commands
+    GameHooks/
+      fbMainHooks.*         # core engine hooks (init, main, console)
+      fbServerHooks.*       # server lifecycle hooks (start, update, player join/leave)
+      fbClientHooks.*       # client state hooks
+      fbEnginePeerHooks.*   # Kyber socket manager integration
+    GameModules/
+      GW1Module.cpp         # GW1-specific patches and hooks
+      GW2Module.cpp         # GW2-specific patches and hooks
+      BFNModule.cpp         # BFN-specific patches (Lua console, thin-client UI)
+    Anticheat/              # server-side cheat detection (GW2)
+  include/
+    SideChannel.h/cpp       # side-channel TCP server/client/tunnel
+    ServerBanlist.h         # ban system with hardware fingerprinting
+    ServerPlaylist.h        # playlist rotation logic
+    Kyber/                  # socket management (from KYBER project)
+    MinHook/                # runtime function hooking
+    fb/                     # reverse-engineered Frostbite engine types
+    EASTL/                  # EA's STL replacement
+  Examples/                 # launch script templates
+```
 
 ## Credits
 
 <table>
   <tr>
-    <td align="center"><a href="https://github.com/breakfastbrainz2"><img src="https://github.com/breakfastbrainz2.png" width="60" /><br /><b>BreakfastBrainz2</b></a><br />Original Cypress launcher</td>
+    <td align="center"><a href="https://github.com/ArmchairDevelopers/Kyber"><img src="https://github.com/ArmchairDevelopers.png" width="60" /><br /><b>KYBER</b></a><br />Frostbite socket manager reimplementation</td>
+    <td align="center"><a href="https://github.com/Andersson799"><img src="https://github.com/Andersson799.png" width="60" /><br /><b>Andersson799</b></a><br />Frostbite dedicated server reverse engineering</td>
+    <td align="center"><a href="https://github.com/breakfastbrainz2"><img src="https://github.com/breakfastbrainz2.png" width="60" /><br /><b>BreakfastBrainz2</b></a><br />GW1 & GW2 dedicated servers, original launcher</td>
+    <td align="center"><a href="https://github.com/ghdrago"><img src="https://github.com/ghdrago.png" width="60" /><br /><b>Ghup</b></a><br />BFN dedicated servers</td>
+    <td align="center"><a href="https://github.com/dylannws"><img src="https://github.com/dylannws.png" width="60" /><br /><b>Dylan</b></a><br />GW2 anticheat</td>
     <td align="center"><a href="https://github.com/dotthefox"><img src="https://github.com/dotthefox.png" width="60" /><br /><b>Gargos69Junior</b></a><br />Continuation of the launcher</td>
-    <td align="center"><a href="https://github.com/v0ee"><img src="https://github.com/v0ee.png" width="60" /><br /><b>v0e</b></a><br />Launcher revamp</td>
+    <td align="center"><a href="https://github.com/v0ee"><img src="https://github.com/v0ee.png" width="60" /><br /><b>v0e</b></a><br />Launcher revamp, side-channel, relay tunnel</td>
     <td align="center"><a href="https://www.youtube.com/@raymondthejester/"><img src="https://yt3.googleusercontent.com/cHv9bXD3143NfpmJV3KxNhXqymhxcrwtQxzu0d-dWloxXROc06Jp77qaa9wX6fm3AS_XWdjzVQ=s160-c-k-c0x00ffffff-no-rj" width="60" /><br /><b>RaymondTheJester</b></a><br />Logo</td>
   </tr>
 </table>
@@ -64,4 +130,3 @@ Output goes to `build/`. You'll also need `courgette.exe`, the `.patch` files, a
 
 ## Terms of Service
 [Terms Of Service](TOS)
-

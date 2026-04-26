@@ -1,0 +1,80 @@
+.titlebar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: var(--titlebar-height);
+    background: linear-gradient(90deg, var(--bg-card) 0%, var(--bg-dark) 50%, var(--bg-card) 100%);
+    border-bottom: 1px solid rgba(var(--accent-rgb), 0.12);
+    user-select: none;
+    -webkit-app-region: drag;
+    app-region: drag;
+    position: relative;
+    z-index: 200;
+}
+.titlebar::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(var(--accent-rgb), 0.3), transparent);
+    pointer-events: none;
+}
+.titlebar-drag {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    height: 100%;
+    padding-left: 12px;
+    -webkit-app-region: drag;
+    app-region: drag;
+}
+.titlebar-brand {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.titlebar-logo {
+    width: 22px;
+    height: 22px;
+    border-radius: 4px;
+    filter: drop-shadow(0 1px 3px rgba(var(--accent-rgb), 0.25));
+}
+.titlebar-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    letter-spacing: 0.8px;
+}
+.titlebar-controls {
+    display: flex;
+    align-items: stretch;
+    height: 100%;
+    -webkit-app-region: no-drag;
+    app-region: no-drag;
+}
+.titlebar-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 46px;
+    height: 100%;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 120ms ease;
+}
+.titlebar-btn:hover {
+    background: rgba(var(--accent-rgb), 0.06);
+    color: var(--text-primary);
+}
+.titlebar-btn-close:hover {
+    background: #c42b1c;
+    color: white;
+}
+.titlebar-btn-tray:hover {
+    background: rgba(var(--accent-rgb), 0.1);
+    color: var(--accent);
+}

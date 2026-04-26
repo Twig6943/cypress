@@ -19,6 +19,75 @@
 #include <fb/SecureReason.h>
 #endif
 
+#ifdef CYPRESS_BFN
+static constexpr int MAX_NAME_LENGTH = 32;
+#else
+static constexpr int MAX_NAME_LENGTH = 16;
+#endif
+
+static const std::vector<std::string>& GetSlurList()
+{
+	static const std::vector<std::string> slurs = {
+		"nigger", "nigga", "faggot", "fag", "dyke", "kike", "tranny", "troon"
+	};
+	return slurs;
+}
+
+static std::string ToLowerStr(const std::string& s)
+{
+	std::string out = s;
+	for (auto& c : out) c = (char)tolower((unsigned char)c);
+	return out;
+}
+
+static bool IsNameValid(const std::string& name, std::string& reason)
+{
+	if (name.empty())
+	{
+		reason = "name is empty";
+		return false;
+	}
+	if (name.length() > MAX_NAME_LENGTH)
+	{
+		reason = "name too long (max 16)";
+		return false;
+	}
+
+	for (char c : name)
+	{
+		if (!((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') ||
+			c == ' ' || c == '-' || c == '_' || c == '!' || c == '?'))
+		{
+			reason = "invalid character in name";
+			return false;
+		}
+	}
+
+	// block ID_ because of idiots using long strings to cover the screen 
+	char blockIdBuf[8] = {};
+	if (GetEnvironmentVariableA("CYPRESS_BLOCK_ID_NAMES", blockIdBuf, sizeof(blockIdBuf)) > 0
+		&& strcmp(blockIdBuf, "1") == 0)
+	{
+		if (name.length() >= 3 && name[0] == 'I' && name[1] == 'D' && name[2] == '_')
+		{
+			reason = "names starting with ID_ are blocked";
+			return false;
+		}
+	}
+
+	std::string lower = ToLowerStr(name);
+	for (const auto& slur : GetSlurList())
+	{
+		if (lower.find(slur) != std::string::npos)
+		{
+			reason = "inappropriate name";
+			return false;
+		}
+	}
+
+	return true;
+}
+
 #if(HAS_DEDICATED_SERVER)
 DEFINE_HOOK(
 	fb_Server_start,
@@ -363,6 +432,21 @@ DEFINE_HOOK(
 		server->LevelSetupFromPlaylistSetup(levelSetup, nextSetup);
 		server->ApplySettingsFromPlaylistSetup(nextSetup);
 	}
+
+	// update browser level/mode
+	{
+		auto* sc = server->GetSideChannel();
+		auto info = sc->GetServerInfo();
+#ifdef CYPRESS_BFN
+		info.level = levelSetup->m_levelManagerInitialLevel.c_str();
+#else
+		info.level = levelSetup->m_name.c_str();
+#endif
+		const char* gm = levelSetup->getInclusionOption("GameMode");
+		info.mode = gm ? gm : "";
+		sc->SetServerInfo(info);
+	}
+
 	Orig_fb_ServerLoadLevelMessage_post(levelSetup, fadeOut, forceReloadResources);
 }
 #endif
@@ -382,12 +466,14 @@ DEFINE_HOOK(
 	// grab fingerprint from side channel if they connected, or from hw cache if they connected before
 	const Cypress::HardwareFingerprint* fp = nullptr;
 	std::string hwid;
+	std::string accountId;
 	auto* sideChannel = g_program->GetServer()->GetSideChannel();
-	auto* peer = sideChannel->FindPeerByName(playerName);
+	auto peer = sideChannel->FindPeerByName(playerName);
 	if (peer)
 	{
 		fp = &peer->fingerprint;
 		hwid = peer->hwid;
+		accountId = peer->accountId;
 	}
 	else
 	{
@@ -401,7 +487,7 @@ DEFINE_HOOK(
 	}
 
 	auto* banlist = g_program->GetServer()->GetServerBanlist();
-	if (banlist->IsBanned(playerName, hwid.empty() ? thisPtr->m_machineId.c_str() : hwid.c_str(), fp))
+	if (banlist->IsBanned(playerName, hwid.empty() ? thisPtr->m_machineId.c_str() : hwid.c_str(), fp, accountId.empty() ? nullptr : accountId.c_str()))
 	{
 		if (fp) banlist->SpreadComponents(*fp, playerName);
 		thisPtr->disconnect(fb::SecureReason_Banned, "Banned from server");
@@ -433,7 +519,7 @@ DEFINE_HOOK(
 	}
 
 	std::string nameRejectReason;
-	if (!Cypress::SideChannelServer::IsNameValid(playerName, nameRejectReason))
+	if (!IsNameValid(playerName, nameRejectReason))
 	{
 		CYPRESS_LOGTOSERVER(LogLevel::Warning, "Kicking {} - {}", playerName, nameRejectReason);
 		thisPtr->disconnect(fb::SecureReason_KickedOut, nameRejectReason.c_str());
@@ -464,12 +550,14 @@ DEFINE_HOOK(
 	// grab fingerprint from side channel if they connected, or from hw cache if they connected before
 	const Cypress::HardwareFingerprint* fp = nullptr;
 	std::string hwid;
+	std::string accountId;
 	auto* sideChannel = g_program->GetServer()->GetSideChannel();
-	auto* peer = sideChannel->FindPeerByName(playerName);
+	auto peer = sideChannel->FindPeerByName(playerName);
 	if (peer)
 	{
 		fp = &peer->fingerprint;
 		hwid = peer->hwid;
+		accountId = peer->accountId;
 	}
 	else
 	{
@@ -483,7 +571,7 @@ DEFINE_HOOK(
 	}
 
 	auto* banlist = g_program->GetServer()->GetServerBanlist();
-	if (banlist->IsBanned(playerName, hwid.empty() ? thisPtr->m_machineId.c_str() : hwid.c_str(), fp))
+	if (banlist->IsBanned(playerName, hwid.empty() ? thisPtr->m_machineId.c_str() : hwid.c_str(), fp, accountId.empty() ? nullptr : accountId.c_str()))
 	{
 		if (fp) banlist->SpreadComponents(*fp, playerName);
 		thisPtr->m_shouldDisconnect = true;
@@ -514,7 +602,7 @@ DEFINE_HOOK(
 	}
 
 	std::string nameRejectReason;
-	if (!Cypress::SideChannelServer::IsNameValid(playerName, nameRejectReason))
+	if (!IsNameValid(playerName, nameRejectReason))
 	{
 		CYPRESS_LOGTOSERVER(LogLevel::Warning, "Kicking {} - {}", playerName, nameRejectReason);
 		thisPtr->m_shouldDisconnect = true;
@@ -546,7 +634,7 @@ DEFINE_HOOK(
 	const char* nickname
 )
 {
-	if (!player->isAIPlayer())
+	if (!player->isAIPlayer() && nickname && nickname[0] != '\0')
 	{
 		CYPRESS_LOGTOSERVER(LogLevel::Info, "[Id: {}] {} has joined the server", player->getPlayerId(), nickname);
 		if (Cypress_IsEmbeddedMode())
@@ -570,9 +658,9 @@ DEFINE_HOOK(
 					Sleep(15000);
 					if (!g_program->IsServer()) return;
 					auto* sc = g_program->GetServer()->GetSideChannel();
-					if (sc->FindPeerByName(name)) return;
+					if (sc->HasPeerByName(name)) return;
 
-					// if proxied, recheck tunnel - don't kick if tunnel dropped
+					// if proxied, recheck tunnel, don't kick if tunnel dropped
 					if (std::getenv("CYPRESS_PROXY_ADDRESS") &&
 						!g_program->GetServer()->GetSideChannelTunnel()->IsRunning())
 						return;
@@ -628,23 +716,26 @@ DEFINE_HOOK(
 	if (!reasonText->empty())
 		reasonStr = reasonText->c_str();
 
-	CYPRESS_LOGTOSERVER(LogLevel::Info, "[Id: {}] {} has left the server (Reason: {}, {})",
-		thisPtr->getPlayerId(),
-		thisPtr->m_name,
-		reasonStr,
-		fb::SecureReason_ToString(reason));
-
-	if (Cypress_IsEmbeddedMode())
-		Cypress_EmitJsonPlayerEvent("playerLeave", thisPtr->getPlayerId(), thisPtr->m_name, reasonStr);
-
-	// Notify moderator clients via side-channel
-#if(HAS_DEDICATED_SERVER)
-	if (g_program->IsServer())
+	if (!thisPtr->isAIPlayer() && thisPtr->m_name && thisPtr->m_name[0] != '\0')
 	{
-		g_program->GetServer()->GetSideChannel()->Broadcast(
-			{ {"type", "scPlayerLeave"}, {"id", thisPtr->getPlayerId()}, {"name", std::string(thisPtr->m_name)} });
-	}
+		CYPRESS_LOGTOSERVER(LogLevel::Info, "[Id: {}] {} has left the server (Reason: {}, {})",
+			thisPtr->getPlayerId(),
+			thisPtr->m_name,
+			reasonStr,
+			fb::SecureReason_ToString(reason));
+
+		if (Cypress_IsEmbeddedMode())
+			Cypress_EmitJsonPlayerEvent("playerLeave", thisPtr->getPlayerId(), thisPtr->m_name, reasonStr);
+
+		// Notify moderator clients via side-channel
+#if(HAS_DEDICATED_SERVER)
+		if (g_program->IsServer())
+		{
+			g_program->GetServer()->GetSideChannel()->Broadcast(
+				{ {"type", "scPlayerLeave"}, {"id", thisPtr->getPlayerId()}, {"name", std::string(thisPtr->m_name)} });
+		}
 #endif
+	}
 
 	Orig_fb_ServerPlayer_disconnect(thisPtr, reason, reasonText);
 }
@@ -661,23 +752,26 @@ DEFINE_HOOK(
 {
 	const char* reasonStr = reasonText.empty() ? "None provided" : reasonText.c_str();
 
-	CYPRESS_LOGTOSERVER(LogLevel::Info, "[Id: {}] {} has left the server (Reason: {}, {})",
-		thisPtr->getPlayerId(),
-		thisPtr->m_name,
-		reasonStr,
-		fb::SecureReason_toString[reason]);
-
-	if (Cypress_IsEmbeddedMode())
-		Cypress_EmitJsonPlayerEvent("playerLeave", thisPtr->getPlayerId(), thisPtr->m_name, reasonStr);
-
-	// Notify moderator clients via side-channel
-#if(HAS_DEDICATED_SERVER)
-	if (g_program->IsServer())
+	if (!thisPtr->isAIPlayer() && thisPtr->m_name && thisPtr->m_name[0] != '\0')
 	{
-		g_program->GetServer()->GetSideChannel()->Broadcast(
-			{ {"type", "scPlayerLeave"}, {"id", thisPtr->getPlayerId()}, {"name", std::string(thisPtr->m_name)} });
-	}
+		CYPRESS_LOGTOSERVER(LogLevel::Info, "[Id: {}] {} has left the server (Reason: {}, {})",
+			thisPtr->getPlayerId(),
+			thisPtr->m_name,
+			reasonStr,
+			fb::SecureReason_toString[reason]);
+
+		if (Cypress_IsEmbeddedMode())
+			Cypress_EmitJsonPlayerEvent("playerLeave", thisPtr->getPlayerId(), thisPtr->m_name, reasonStr);
+
+		// Notify moderator clients via side-channel
+#if(HAS_DEDICATED_SERVER)
+		if (g_program->IsServer())
+		{
+			g_program->GetServer()->GetSideChannel()->Broadcast(
+				{ {"type", "scPlayerLeave"}, {"id", thisPtr->getPlayerId()}, {"name", std::string(thisPtr->m_name)} });
+		}
 #endif
+	}
 
 	Orig_fb_ServerPlayer_disconnect(thisPtr, reason, reasonText);
 }

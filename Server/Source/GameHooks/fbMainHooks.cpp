@@ -33,7 +33,7 @@ DEFINE_HOOK(
 			// OnlineSettings inherits SystemSettings (0x20 bytes)
 			// Backend (BackendType enum, int32) is at offset 0x20
 			// PeerBackend is at offset 0x24
-			// ServerAllowAnyReputation (bool) - need to find offset
+			// ServerAllowAnyReputation (bool), need to find offset
 			void* onlineSettings = sm->getContainer<void>("Online");
 			if (onlineSettings)
 			{
@@ -45,7 +45,7 @@ DEFINE_HOOK(
 			void* serverSettings = sm->getContainer<void>("Server");
 			if (serverSettings)
 			{
-				// ServerSettings::IsRanked - need correct offset
+				// ServerSettings::IsRanked, need correct offset
 				// For now just log
 			}
 

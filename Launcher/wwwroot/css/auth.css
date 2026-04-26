@@ -1,0 +1,115 @@
+.auth-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 9998;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+}
+
+.auth-modal {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 2.5em 2em 2em;
+    max-width: 400px;
+    width: 90%;
+    text-align: center;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+.auth-modal-logo {
+    width: 64px;
+    height: 64px;
+    margin-bottom: 1em;
+    border-radius: var(--radius);
+}
+
+.auth-modal h3 {
+    color: var(--text-primary);
+    margin: 0 0 0.5em;
+    font-size: 1.3em;
+    font-weight: 600;
+}
+
+.auth-modal p {
+    color: var(--text-secondary);
+    font-size: 0.9em;
+    margin: 0 0 1.5em;
+    line-height: 1.5;
+}
+
+.auth-login-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5em;
+    padding: 0.7em 2em;
+    background: var(--btn-primary-bg);
+    color: var(--text-on-accent);
+    border: none;
+    border-radius: var(--radius);
+    font-family: var(--font);
+    font-size: 1em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background var(--transition), transform var(--transition);
+}
+
+.auth-login-btn:hover {
+    background: var(--btn-primary-hover);
+    transform: translateY(-1px);
+}
+
+.auth-login-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.auth-status {
+    margin-top: 1em;
+    font-size: 0.85em;
+    color: var(--text-muted);
+    min-height: 1.4em;
+}
+
+.auth-status.error {
+    color: var(--danger);
+}
+
+.auth-status.waiting {
+    color: var(--accent-warm);
+}
+
+.identity-form {
+    margin-bottom: 1.2em;
+}
+
+.identity-input {
+    width: 100%;
+    padding: 0.6em 0.8em;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text-primary);
+    font-family: var(--font);
+    font-size: 1em;
+    text-align: center;
+    letter-spacing: 0.02em;
+    box-sizing: border-box;
+    outline: none;
+    transition: border-color var(--transition);
+}
+
+.identity-input:focus {
+    border-color: var(--accent);
+}
+
+.identity-hint {
+    display: block;
+    margin-top: 0.4em;
+    font-size: 0.78em;
+    color: var(--text-muted);
+}

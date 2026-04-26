@@ -14,6 +14,12 @@ indent_style = tab
 indent_size = 4
 tab_width = 4
 
+# C/C++ source and headers
+[*.{cpp,cc,h,hpp}]
+indent_style = tab
+indent_size = 4
+tab_width = 4
+
 # .NET naming conventions
 dotnet_naming_rule.private_fields_with_m_prefix.symbols = private_fields
 dotnet_naming_rule.private_fields_with_m_prefix.style = m_prefix_style

@@ -67,7 +67,7 @@ extern "C"
 
 void InitDirectInput8Exports()
 {
-	char dinputDLLName[MAX_PATH];
+	char dinputDLLName[MAX_PATH + 32];
 	GetSystemDirectoryA(dinputDLLName, MAX_PATH);
 	strcat_s(dinputDLLName, "\\dinput8.dll");
 
@@ -198,6 +198,8 @@ namespace Cypress
 			SetConsoleCtrlHandler(ConsoleCloseHandler, TRUE);
 		}
 		
+		Cypress_InitFileLog();
+
 #ifdef CYPRESS_GW1
 		m_gameModule = new GW1Module();
 #elif defined(CYPRESS_GW2)
@@ -218,7 +220,7 @@ namespace Cypress
 
 	Program::~Program()
 	{
-
+		Cypress_CloseFileLog();
 	}
 
 	void Program::InitConfig()
@@ -377,12 +379,17 @@ namespace Cypress
 					if (cmd.starts_with("Cypress.SetModToken "))
 					{
 						std::string token = cmd.substr(20);
+						// always store token so it's available when side channel connects later
+						sc->SetModToken(token);
 						if (!token.empty() && sc->IsConnected())
 						{
-							sc->SetModToken(token);
-							// tell server we claim mod, triggers challenge-response
+							// already connected, trigger challenge now
 							sc->Send({ {"type", "modTokenUpdate"} });
 							CYPRESS_LOGMESSAGE(LogLevel::Info, "Stored mod token and requested challenge");
+						}
+						else if (!token.empty())
+						{
+							CYPRESS_LOGMESSAGE(LogLevel::Info, "Stored mod token (side channel not connected yet, will claim on auth)");
 						}
 						continue;
 					}
@@ -571,11 +578,15 @@ namespace Cypress
 			try
 			{
 				auto infoJson = nlohmann::json::parse(jsonStr);
+				auto existing = m_server->GetSideChannel()->GetServerInfo();
 				ServerInfo si;
 				si.motd = infoJson.value("motd", "");
 				si.icon = infoJson.value("icon", "");
 				si.modded = infoJson.value("modded", false);
 				si.modpackUrl = infoJson.value("modpackUrl", "");
+				// keep existing level/mode if not in json
+				si.level = infoJson.contains("level") ? infoJson.value("level", "") : existing.level;
+				si.mode = infoJson.contains("mode") ? infoJson.value("mode", "") : existing.mode;
 				m_server->GetSideChannel()->SetServerInfo(si);
 				CYPRESS_LOGTOSERVER(LogLevel::Info, "Server info updated (motd: {})", si.motd);
 			}
@@ -583,6 +594,12 @@ namespace Cypress
 			{
 				CYPRESS_LOGTOSERVER(LogLevel::Warning, "Failed to parse server info: {}", e.what());
 			}
+		}
+		else if (cmd.starts_with("Cypress.SetLogLevel "))
+		{
+			std::string level = cmd.substr(20);
+			Cypress_SetLogLevel(Cypress_ParseLogLevel(level.c_str()));
+			CYPRESS_LOGTOSERVER(LogLevel::Info, "Log level set to {}", Cypress_LogLevelToStr(g_cypressLogLevel));
 		}
 	}
 

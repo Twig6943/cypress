@@ -26,3 +26,43 @@ Desktop.ini
 
 # Python
 __pycache__/
+
+# Debug/temp
+_debug_bundle.js
+
+# Go build artifacts & runtime data
+tools/cypress-servers/*.exe
+tools/cypress-servers/master-test
+tools/cypress-servers/relay-test
+tools/cypress-servers/*.db
+tools/cypress-servers/*.db-shm
+tools/cypress-servers/*.db-wal
+tools/cypress-servers/*.bin
+tools/cypress-servers/moderator_secret.txt
+tools/cypress-servers/signing_key.bin
+tools/cypress-servers/hwid_salt.bin
+tools/cypress-servers/build/
+
+# C++ intermediates (Server/)
+Server/x64/
+Server/Cypress/
+**/x86/
+**/Win32/
+*.obj
+*.pch
+*.ilk
+*.iobj
+*.ipdb
+*.tlog
+*.lastbuildstate
+*.idb
+*.exp
+ipch/
+*.aps
+*.ncb
+*.opendb
+*.opensdf
+*.sdf
+*.cachefile
+*.VC.db
+*.VC.VC.opendb

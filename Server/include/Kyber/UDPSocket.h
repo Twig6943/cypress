@@ -244,6 +244,8 @@ namespace Kyber
         virtual bool Listen(const SocketAddr& address, bool blocking = false) override;
         virtual bool Create(bool blocking = false) override;
 
+        void RefreshProxyAddress();
+
     private:
         friend class SocketManager;
 

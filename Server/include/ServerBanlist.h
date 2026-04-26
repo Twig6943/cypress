@@ -14,6 +14,7 @@ public:
     {
         std::string Id;
         std::vector<std::string> Names;
+        std::string AccountId;
         std::string MachineId;
         std::string BanReason;
         std::set<std::string> Components;
@@ -23,7 +24,6 @@ public:
     {
         std::lock_guard<std::mutex> lock(m_mutex);
         m_filename = filename;
-
         std::ifstream input(filename);
         if (!input.is_open()) return;
 
@@ -34,6 +34,7 @@ public:
         {
             BanEntry ban;
             ban.Id = entry.value("Id", GenerateId());
+            ban.AccountId = entry.value("AccountId", "");
             ban.MachineId = entry.value("MachineId", "");
             ban.BanReason = entry.value("BanReason", "");
 
@@ -73,21 +74,32 @@ public:
             nlohmann::json entry;
             entry["Id"] = ban.Id;
             entry["Names"] = ban.Names;
+            entry["AccountId"] = ban.AccountId;
             entry["MachineId"] = ban.MachineId;
             entry["BanReason"] = ban.BanReason;
             entry["Components"] = nlohmann::json(std::vector<std::string>(ban.Components.begin(), ban.Components.end()));
             j.push_back(entry);
         }
 
-        std::ofstream file(m_filename ? m_filename : "bans.json");
+        std::ofstream file(m_filename);
         if (file.is_open())
             file << j.dump(4);
     }
 
-    // check if banned by machine id, hw components, or name (name only used as fallback for hw-less pre-bans)
-    bool IsBanned(const char* name, const char* machineId = nullptr, const Cypress::HardwareFingerprint* fp = nullptr)
+    // check if banned by account_id, machine id, hw components, or name
+    bool IsBanned(const char* name, const char* machineId = nullptr, const Cypress::HardwareFingerprint* fp = nullptr, const char* accountId = nullptr)
     {
         std::lock_guard<std::mutex> lock(m_mutex);
+
+        // account_id match (highest priority)
+        if (accountId && accountId[0] != '\0')
+        {
+            for (const auto& ban : m_entries)
+            {
+                if (!ban.AccountId.empty() && ban.AccountId == accountId)
+                    return true;
+            }
+        }
 
         for (const auto& ban : m_entries)
         {
@@ -123,7 +135,7 @@ public:
         return false;
     }
 
-    // viral spread - if any component matches a ban, absorb all their other components too
+    // viral spread, if any component matches a ban, absorb all their other components too
     // also tracks the name as a known alias
     void SpreadComponents(const Cypress::HardwareFingerprint& fp, const char* name = nullptr)
     {
@@ -184,13 +196,24 @@ public:
             SaveToFile();
     }
 
-    void AddToList(const char* name, const char* machineId, const char* reasonText, const Cypress::HardwareFingerprint* fp = nullptr)
+    void AddToList(const char* name, const char* machineId, const char* reasonText, const Cypress::HardwareFingerprint* fp = nullptr, const char* accountId = nullptr)
     {
         std::lock_guard<std::mutex> lock(m_mutex);
 
-        // check if any existing profile matches by component or name
+        // check if any existing profile matches by account_id, component, or name
         BanEntry* existing = nullptr;
-        if (fp)
+        if (accountId && accountId[0] != '\0')
+        {
+            for (auto& ban : m_entries)
+            {
+                if (!ban.AccountId.empty() && ban.AccountId == accountId)
+                {
+                    existing = &ban;
+                    break;
+                }
+            }
+        }
+        if (!existing && fp)
         {
             for (auto& ban : m_entries)
             {
@@ -233,6 +256,9 @@ public:
             if (machineId && existing->MachineId.empty())
                 existing->MachineId = machineId;
 
+            if (accountId && accountId[0] != '\0' && existing->AccountId.empty())
+                existing->AccountId = accountId;
+
             if (fp)
             {
                 for (const auto& c : fp->components)
@@ -248,6 +274,7 @@ public:
             BanEntry ban;
             ban.Id = GenerateId();
             ban.Names.push_back(name);
+            ban.AccountId = accountId ? accountId : "";
             ban.MachineId = machineId ? machineId : "";
             ban.BanReason = reasonText ? reasonText : "";
 
@@ -315,7 +342,7 @@ private:
         return id;
     }
 
-    const char* m_filename = nullptr;
+    std::string m_filename = "bans.json";
     std::vector<BanEntry> m_entries;
     std::set<std::string> m_bannedComponents;
     std::mutex m_mutex;

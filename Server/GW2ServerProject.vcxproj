@@ -490,6 +490,8 @@
     <ClInclude Include="include\ServerPlaylist.h" />
     <ClInclude Include="include\SideChannel.h" />
     <ClInclude Include="include\HWID.h" />
+    <ClInclude Include="include\CypressIdentity.h" />
+    <ClInclude Include="include\monocypher.h" />
     <ClInclude Include="include\FreeCam.h" />
     <ClInclude Include="include\StringUtil.h" />
     <ClInclude Include="Source\Core\Assert.h" />
@@ -539,6 +541,10 @@
     <ClCompile Include="include\Kyber\SocketManager.cpp" />
     <ClCompile Include="include\Kyber\UDPSocket.cpp" />
     <ClCompile Include="include\SideChannel.cpp" />
+    <ClCompile Include="include\monocypher.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <CompileAs>CompileAsC</CompileAs>
+    </ClCompile>
     <ClCompile Include="include\MinHook\buffer.cpp" />
     <ClCompile Include="include\MinHook\hde\hde32.cpp" />
     <ClCompile Include="include\MinHook\hde\hde64.cpp" />

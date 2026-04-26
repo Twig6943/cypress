@@ -1,0 +1,190 @@
+.docs-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+}
+.docs-nav-btn {
+    padding: 6px 14px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-family: var(--font);
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all var(--transition);
+}
+.docs-nav-btn:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+.docs-nav-btn.active {
+    background: linear-gradient(135deg, rgba(var(--accent-rgb), 0.15), rgba(var(--accent-warm-rgb), 0.1));
+    border-color: var(--accent);
+    color: var(--accent);
+    font-weight: 600;
+}
+.docs-content {
+    flex: 1;
+    overflow-y: auto;
+    padding-right: 8px;
+}
+.docs-section {
+    display: none;
+}
+.docs-section.active {
+    display: block;
+}
+.docs-section h3 {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 12px;
+    color: var(--text-primary);
+}
+.docs-section h4 {
+    font-size: 15px;
+    font-weight: 600;
+    margin: 18px 0 8px;
+    color: var(--accent);
+}
+.docs-section p, .docs-section li {
+    color: var(--text-secondary);
+    line-height: 1.7;
+    margin-bottom: 8px;
+}
+.docs-section ul, .docs-section ol {
+    padding-left: 20px;
+    margin-bottom: 12px;
+}
+.docs-section code {
+    background: var(--bg-input);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 13px;
+    color: var(--accent);
+    font-family: var(--font-mono);
+}
+.docs-section pre {
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px;
+    margin: 10px 0 14px;
+    overflow-x: auto;
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--text-secondary);
+    font-family: var(--font-mono);
+}
+.info-card {
+    background: var(--bg-card);
+    border: 1px solid rgba(var(--accent-rgb), 0.08);
+    border-radius: var(--radius-lg);
+    padding: 16px;
+    margin-bottom: 12px;
+}
+.info-card h5 {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: var(--text-primary);
+}
+.info-card p {
+    font-size: 13px;
+    margin-bottom: 0;
+}
+.ref-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 10px 0 16px;
+    font-size: 13px;
+}
+.ref-table th, .ref-table td {
+    padding: 8px 12px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+}
+.ref-table th {
+    background: var(--bg-input);
+    color: var(--text-secondary);
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.ref-table td {
+    color: var(--text-secondary);
+}
+.ref-table td code {
+    font-size: 12px;
+}
+.ref-table tr:hover td {
+    background: var(--bg-hover);
+}
+.game-filter {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 14px;
+}
+.game-filter-btn {
+    padding: 4px 12px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 12px;
+    font-family: var(--font);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all var(--transition);
+}
+.game-filter-btn:hover {
+    color: var(--text-primary);
+    border-color: var(--text-muted);
+}
+.game-filter-btn.active {
+    color: var(--accent);
+    border-color: var(--accent);
+    background: linear-gradient(135deg, rgba(var(--accent-rgb), 0.15), rgba(var(--accent-warm-rgb), 0.08));
+}
+.collapsible {
+    margin-bottom: 8px;
+}
+.collapsible-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    cursor: pointer;
+    color: var(--text-primary);
+    font-size: 14px;
+    font-weight: 600;
+    transition: all var(--transition);
+    user-select: none;
+}
+.collapsible-header:hover {
+    background: var(--bg-hover);
+}
+.collapsible-header .arrow {
+    transition: transform var(--transition);
+    color: var(--text-muted);
+}
+.collapsible.open .collapsible-header .arrow {
+    transform: rotate(90deg);
+}
+.collapsible-body {
+    display: none;
+    padding: 12px 14px;
+    border: 1px solid var(--border);
+    border-top: none;
+    border-radius: 0 0 var(--radius) var(--radius);
+    background: var(--bg-dark);
+}
+.collapsible.open .collapsible-body {
+    display: block;
+}

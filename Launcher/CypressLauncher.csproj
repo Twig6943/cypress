@@ -1,0 +1,74 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>CypressLauncher</AssemblyName>
+    <GenerateAssemblyInfo>False</GenerateAssemblyInfo>
+    <OutputType>WinExe</OutputType>
+    <TargetFrameworks>net8.0;net8.0-windows</TargetFrameworks>
+    <Configurations>Debug;Release</Configurations>
+    <Version>2.0.0</Version>
+  </PropertyGroup>
+  <PropertyGroup>
+    <LangVersion>12.0</LangVersion>
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+    <CheckForOverflowUnderflow>False</CheckForOverflowUnderflow>
+  </PropertyGroup>
+  <PropertyGroup>
+    <RootNamespace />
+    <ApplicationIcon>assets\cypressicons\ico\Burbank-CypressIcon.ico</ApplicationIcon>
+  </PropertyGroup>
+  <!-- Windows-only: WinForms (for tray icon, folder dialog) -->
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net8.0-windows'">
+    <UseWindowsForms>True</UseWindowsForms>
+    <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <DefineConstants>$(DefineConstants);WINDOWS</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup>
+    <Content Include="assets\cypressicons\ico\Burbank-CypressIcon.ico">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="assets\cypressicons\png\Burbank-CypressIcon.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="assets\fonts\burbankbigcondensed_bold.otf">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="assets\gameicons\*.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="assets\gamebgs\*.jpg">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="assets\mapbgs\**\*.jpg">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="assets\modebgs\**\*.jpg">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="assets\AI_Sets\*.jpg">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="assets\CharacterIcons\**\*.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="NSec.Cryptography" Version="24.4.0" />
+    <PackageReference Include="Photino.NET" Version="3.1.18" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="SkiaSharp" Version="2.88.9" />
+    <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="2.88.9" Condition="$([MSBuild]::IsOSPlatform('Linux'))" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="wwwroot\**" />
+  </ItemGroup>
+  <!-- Exclude resx with non-string resources from net8.0 (they use System.Drawing types) -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
+    <EmbeddedResource Remove="CypressLauncher.Properties.Resources.resx" />
+    <EmbeddedResource Remove="CypressLauncher\LaunchWindow.resx" />
+  </ItemGroup>
+  <!-- patch icon into apphost exe (SDK doesn't do this for framework-dependent builds) -->
+  <Target Name="PatchAppHostIcon" AfterTargets="Build" Condition="'$(OS)' == 'Windows_NT' and Exists('$(OutputPath)$(AssemblyName).exe')">
+    <Exec Command="&quot;$(MSBuildProjectDirectory)\tools\rcedit-x64.exe&quot; &quot;$(OutputPath)$(AssemblyName).exe&quot; --set-icon &quot;$(MSBuildProjectDirectory)\assets\cypressicons\ico\Burbank-CypressIcon.ico&quot;" />
+  </Target>
+</Project>

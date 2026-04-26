@@ -303,9 +303,10 @@ namespace Cypress
 		}
 
 		const Cypress::HardwareFingerprint* fp = nullptr;
-		auto* peer = g_program->GetServer()->GetSideChannel()->FindPeerByName(player->m_name);
-		if (peer) fp = &peer->fingerprint;
-		g_program->GetServer()->GetServerBanlist()->AddToList(player->m_name, connection->m_machineId.c_str(), reasonText, fp);
+		const char* accountId = nullptr;
+		auto peer = g_program->GetServer()->GetSideChannel()->FindPeerByName(player->m_name);
+		if (peer) { fp = &peer->fingerprint; accountId = peer->accountId.c_str(); }
+		g_program->GetServer()->GetServerBanlist()->AddToList(player->m_name, connection->m_machineId.c_str(), reasonText, fp, accountId);
 		connection->disconnect(SecureReason_Banned, reasonText);
 	}
 
@@ -338,9 +339,10 @@ namespace Cypress
 		}
 
 		const Cypress::HardwareFingerprint* fp = nullptr;
-		auto* peer = g_program->GetServer()->GetSideChannel()->FindPeerByName(player->m_name);
-		if (peer) fp = &peer->fingerprint;
-		g_program->GetServer()->GetServerBanlist()->AddToList(player->m_name, connection->m_machineId.c_str(), reasonText, fp);
+		const char* accountId = nullptr;
+		auto peer = g_program->GetServer()->GetSideChannel()->FindPeerByName(player->m_name);
+		if (peer) { fp = &peer->fingerprint; accountId = peer->accountId.c_str(); }
+		g_program->GetServer()->GetServerBanlist()->AddToList(player->m_name, connection->m_machineId.c_str(), reasonText, fp, accountId);
 		connection->disconnect(SecureReason_Banned, reasonText);
 	}
 
@@ -379,13 +381,15 @@ namespace Cypress
 		Server* pServer = g_program->GetServer();
 
 		// prefer live side channel peer, fall back to hw cache
-		auto* livePeer = pServer->GetSideChannel()->FindPeerByName(playerName);
+		auto livePeer = pServer->GetSideChannel()->FindPeerByName(playerName);
 		const char* machineId = nullptr;
 		const Cypress::HardwareFingerprint* fp = nullptr;
+		const char* accountId = nullptr;
 		if (livePeer)
 		{
 			machineId = livePeer->hwid.c_str();
 			fp = &livePeer->fingerprint;
+			accountId = livePeer->accountId.c_str();
 		}
 		else
 		{
@@ -396,7 +400,7 @@ namespace Cypress
 				fp = &it->second.second;
 			}
 		}
-		pServer->GetServerBanlist()->AddToList(playerName, machineId, reasonText, fp);
+		pServer->GetServerBanlist()->AddToList(playerName, machineId, reasonText, fp, accountId);
 
 		CYPRESS_LOGTOSERVER(LogLevel::Info, "Pre-banned {}: {}", playerName, reasonText);
 	}
@@ -582,9 +586,10 @@ namespace Cypress
 		}
 
 		const Cypress::HardwareFingerprint* fp = nullptr;
-		auto* scPeer = g_program->GetServer()->GetSideChannel()->FindPeerByName(player->m_name);
+		auto scPeer = g_program->GetServer()->GetSideChannel()->FindPeerByName(player->m_name);
+		const char* accountId = scPeer ? scPeer->accountId.c_str() : nullptr;
 		if (scPeer) fp = &scPeer->fingerprint;
-		g_program->GetServer()->GetServerBanlist()->AddToList(player->m_name, connection->m_machineId.c_str(), reasonText.c_str(), fp);
+		g_program->GetServer()->GetServerBanlist()->AddToList(player->m_name, connection->m_machineId.c_str(), reasonText.c_str(), fp, accountId);
 		gameContext->m_serverPeer->m_bannedMachines.push_back(connection->m_machineId);
 		gameContext->m_serverPeer->m_bannedPlayers.push_back(player->m_name);
 		player->disconnect(SecureReason_Banned, reasonText);
@@ -623,9 +628,10 @@ namespace Cypress
 			reasonText = reason.c_str();
 		}
 		const Cypress::HardwareFingerprint* fp = nullptr;
-		auto* scPeer = g_program->GetServer()->GetSideChannel()->FindPeerByName(player->m_name);
+		auto scPeer = g_program->GetServer()->GetSideChannel()->FindPeerByName(player->m_name);
+		const char* accountId = scPeer ? scPeer->accountId.c_str() : nullptr;
 		if (scPeer) fp = &scPeer->fingerprint;
-		g_program->GetServer()->GetServerBanlist()->AddToList(player->m_name, connection->m_machineId.c_str(), reasonText.c_str(), fp);
+		g_program->GetServer()->GetServerBanlist()->AddToList(player->m_name, connection->m_machineId.c_str(), reasonText.c_str(), fp, accountId);
 		gameContext->m_serverPeer->m_bannedMachines.push_back(connection->m_machineId);
 		gameContext->m_serverPeer->m_bannedPlayers.push_back(player->m_name);
 		player->disconnect(SecureReason_Banned, reasonText);
@@ -666,13 +672,15 @@ namespace Cypress
 		Server* pServer = g_program->GetServer();
 
 		// prefer live side channel peer, fall back to hw cache
-		auto* livePeer = pServer->GetSideChannel()->FindPeerByName(playerName.c_str());
+		auto livePeer = pServer->GetSideChannel()->FindPeerByName(playerName.c_str());
 		const char* machineId = nullptr;
 		const Cypress::HardwareFingerprint* fp = nullptr;
+		const char* accountId = nullptr;
 		if (livePeer)
 		{
 			machineId = livePeer->hwid.c_str();
 			fp = &livePeer->fingerprint;
+			accountId = livePeer->accountId.c_str();
 		}
 		else
 		{
@@ -683,7 +691,7 @@ namespace Cypress
 				fp = &it->second.second;
 			}
 		}
-		pServer->GetServerBanlist()->AddToList(playerName.c_str(), machineId, reason.c_str(), fp);
+		pServer->GetServerBanlist()->AddToList(playerName.c_str(), machineId, reason.c_str(), fp, accountId);
 
 		if (gameContext)
 			gameContext->m_serverPeer->m_bannedPlayers.push_back(eastl::string(playerName.c_str()));
@@ -936,7 +944,7 @@ namespace Cypress
 			m_playerHwCache[peer.name] = { peer.hwid, peer.fingerprint };
 
 			auto* banlist = GetServerBanlist();
-			if (!banlist->IsBanned(peer.name.c_str(), peer.hwid.c_str(), &peer.fingerprint)) return;
+			if (!banlist->IsBanned(peer.name.c_str(), peer.hwid.c_str(), &peer.fingerprint, peer.accountId.empty() ? nullptr : peer.accountId.c_str())) return;
 
 			// they slipped past the game hook — find and kick them now
 			banlist->SpreadComponents(peer.fingerprint, peer.name.c_str());
@@ -954,6 +962,23 @@ namespace Cypress
 			CYPRESS_LOGTOSERVER(LogLevel::Info, "Late-kicked banned player {} after side-channel auth", peer.name);
 		});
 
+		// kick players who fail identity verification
+		m_sideChannel.SetOnAuthReject([this](const std::string& name, const std::string& reason)
+		{
+			fb::ServerGameContext* gameContext = fb::ServerGameContext::GetInstance();
+			if (!gameContext || !gameContext->m_serverPlayerManager) return;
+			fb::ServerPlayer* player = gameContext->m_serverPlayerManager->findHumanByName(name.c_str());
+			if (!player) return;
+#ifdef CYPRESS_BFN
+			fb::ServerConnection* conn = gameContext->m_serverPeer->connectionForPlayer(player);
+			if (conn) conn->disconnect(fb::SecureReason_KickedOut, reason.c_str());
+#else
+			eastl::string kickMsg(reason.c_str());
+			player->disconnect(fb::SecureReason_KickedOut, kickMsg);
+#endif
+			CYPRESS_LOGTOSERVER(LogLevel::Info, "Kicked {} - {}", name, reason);
+		});
+
 		// When a moderator authenticates, send the actual game player list
 		m_sideChannel.SetOnModeratorAuth([this](SideChannelPeer& peer)
 		{
@@ -966,11 +991,39 @@ namespace Cypress
 			{
 				fb::ServerPlayer* p = players.at(i);
 				if (p && !p->isAIPlayer())
-					playerList.push_back({{"name", std::string(p->m_name)}, {"id", p->getPlayerId()}});
+				{
+					nlohmann::json entry = {{"name", std::string(p->m_name)}, {"id", p->getPlayerId()}};
+					auto scPeer = m_sideChannel.FindPeerByName(p->m_name);
+					if (scPeer)
+					{
+						// display name for everyone
+						std::string displayName = std::string(p->m_name);
+						if (!scPeer->identityNickname.empty())
+							displayName = scPeer->identityNickname;
+						else if (!scPeer->identityUsername.empty())
+							displayName = scPeer->identityUsername;
+
+						entry["account_id"] = scPeer->accountId;
+
+						// global mods get full data
+						entry["ea_pid"] = scPeer->eaPid;
+						entry["hwid"] = scPeer->hwid;
+						entry["components"] = scPeer->fingerprint.toJson();
+						entry["username"] = scPeer->identityUsername;
+						entry["nickname"] = scPeer->identityNickname;
+
+						// "Nickname (@username)" for global mods
+						std::string modDisplay = displayName;
+						if (!scPeer->identityNickname.empty() && !scPeer->identityUsername.empty())
+							modDisplay = scPeer->identityNickname + " (@" + scPeer->identityUsername + ")";
+						entry["display_name"] = modDisplay;
+					}
+					playerList.push_back(entry);
+				}
 			}
 			m_sideChannel.SendToPeer(peer, { {"type", "scPlayerList"}, {"players", playerList} });
 		});
-		// mod kick - route through console commands (parsers handle spaces)
+		// mod kick, route through console commands (parsers handle spaces)
 		m_sideChannel.SetHandler("modKick", [this](const nlohmann::json& msg, SideChannelPeer& peer)
 		{
 			if (!peer.isModerator)
@@ -998,7 +1051,7 @@ namespace Cypress
 #endif
 		});
 
-		// mod ban - route through console commands (ParseFirstArg splits on comma, not space)
+		// mod ban, route through console commands (ParseFirstArg splits on comma, not space)
 		m_sideChannel.SetHandler("modBan", [this](const nlohmann::json& msg, SideChannelPeer& peer)
 		{
 			if (!peer.isModerator)
@@ -1152,7 +1205,7 @@ namespace Cypress
 #endif
 		});
 
-		// mod freecam - relay to target client
+		// mod freecam, relay to target client
 		m_sideChannel.SetHandler("modFreecam", [this](const nlohmann::json& msg, SideChannelPeer& peer)
 		{
 			if (!peer.isModerator)
@@ -1168,7 +1221,7 @@ namespace Cypress
 			m_sideChannel.SendTo(target, { {"type", "freecam"} });
 		});
 
-		// mod setting - apply a game setting via SettingsManager
+		// mod setting, apply a game setting via SettingsManager
 		m_sideChannel.SetHandler("modSetting", [this](const nlohmann::json& msg, SideChannelPeer& peer)
 		{
 			if (!peer.isModerator)
@@ -1209,6 +1262,9 @@ namespace Cypress
 			currentDeltaTime = sumDeltaTime / float(frameCount);
 			sumDeltaTime = 0;
 			frameCount = 0;
+
+			// snapshot player names for side-channel queries (safe from main thread)
+			m_sideChannel.UpdatePlayerNamesCache();
 		}
 
 #ifdef CYPRESS_BFN
@@ -1378,6 +1434,14 @@ namespace Cypress
 		LevelSetupFromPlaylistSetup(&setup, nextSetup);
 		ApplySettingsFromPlaylistSetup(nextSetup);
 
+		// update browser level/mode
+		{
+			auto info = GetSideChannel()->GetServerInfo();
+			info.level = nextSetup->LevelName;
+			info.mode = nextSetup->GameMode;
+			GetSideChannel()->SetServerInfo(info);
+		}
+
 #ifdef CYPRESS_BFN
 		CYPRESS_LOGTOSERVER(LogLevel::Info, "Server is loading playlist setup ({} on {})", setup.m_levelManagerInitialLevel.c_str(), setup.m_levelManagerStartPoint.c_str());
 #else
@@ -1500,7 +1564,11 @@ namespace Cypress
 		fb_spawnServer(reinterpret_cast<void*>(reinterpret_cast<uint64_t>(thisPtr) + 0x8), spawnInfo);
 
 		g_program->GetGameModule()->RegisterCommands();
-		pServer->m_banlist.LoadFromFile("bans.json");
+		{
+			char banPath[MAX_PATH] = "bans.json";
+			GetEnvironmentVariableA("CYPRESS_BANLIST_PATH", banPath, sizeof(banPath));
+			pServer->m_banlist.LoadFromFile(banPath);
+		}
 
 #else // GW1 / GW2
 		g_program->GetServer()->SetRunning(true);
@@ -1565,7 +1633,11 @@ namespace Cypress
 
 		g_program->GetGameModule()->RegisterCommands();
 
-		g_program->GetServer()->m_banlist.LoadFromFile("bans.json");
+		{
+			char banPath[MAX_PATH] = "bans.json";
+			GetEnvironmentVariableA("CYPRESS_BANLIST_PATH", banPath, sizeof(banPath));
+			g_program->GetServer()->m_banlist.LoadFromFile(banPath);
+		}
 		ServerPeer* peer = ServerGameContext::GetInstance()->m_serverPeer;
 		for (const auto& player : g_program->GetServer()->m_banlist.GetBannedPlayers())
 		{

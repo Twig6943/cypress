@@ -34,7 +34,7 @@ Based on [KYBER](https://github.com/ArmchairDevelopers/Kyber) (Star Wars: Battle
 
 ## Terms of Service
 
-By using this software you agree to the [Cypress Terms of Service](https://github.com/PvZ-Cypress/Launcher/blob/main/TOS.md).
+By using this software you agree to the [Cypress Terms of Service](../TOS.md).
 
 ## Building
 
@@ -85,7 +85,7 @@ GW2.Main_Win64_Retail.exe ^
   -Client.ServerIp 192.168.1.91:25200
 ```
 
-For a UI-based experience, use the [Cypress Launcher](https://github.com/PvZ-Cypress/Launcher).
+For a UI-based experience, use the Cypress Launcher (root of this repo).
 
 ## Project Structure
 

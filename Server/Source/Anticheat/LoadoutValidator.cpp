@@ -242,7 +242,14 @@ ValidationResult LoadoutValidator::validatePlayer(fb::ServerPlayer* player) {
     result.personaId = player->getPlayerId();
 
     fb::Asset* customizationAsset = player->getPVZCharacterCustomizationAsset();
+    if (!customizationAsset || !customizationAsset->Name) {
+        g_program->GetServer()->GetAnticheat()->AC_LogMessage(LogLevel::Error, "Player {} has no customization asset", playerName);
+        result.addFlag(ValidationFlag::NullPointer);
+        return result;
+    }
     const uint32_t kitHash = fnvHash(cutPath(customizationAsset->Name));
+
+    g_program->GetServer()->GetAnticheat()->AC_LogMessage(LogLevel::Info, "Player {} kit: {} (hash: {}, weaponSets size: {})", playerName, customizationAsset->Name, kitHash, weaponSets.size());
 
     fb::PVZCharacterServerPlayerExtent* extent = player->getPVZCharacterServerPlayerExtent();
 
@@ -268,6 +275,7 @@ ValidationResult LoadoutValidator::validatePlayer(fb::ServerPlayer* player) {
     WeaponSet allowedWeapons;
     result.invalidSoldier = characterBlueprint->Name;
     if (it == weaponSets.end()) {
+        g_program->GetServer()->GetAnticheat()->AC_LogMessage(LogLevel::Error, "Kit hash {} not found in weaponSets ({} entries)", kitHash, weaponSets.size());
         result.addFlag(ValidationFlag::InvalidSoldier);
     }
     else {

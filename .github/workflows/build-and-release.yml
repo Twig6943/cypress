@@ -11,7 +11,31 @@ permissions:
   contents: write
 
 jobs:
-  build:
+  server:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        game: [GW1, GW2, BFN]
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup MSBuild
+      uses: microsoft/setup-msbuild@v2
+
+    - name: Build Server - ${{ matrix.game }}
+      working-directory: Server
+      run: msbuild GW2ServerProject.vcxproj "/p:Configuration=Release - ${{ matrix.game }}" /p:Platform=x64 /m
+
+    - name: Upload DLL
+      uses: actions/upload-artifact@v4
+      with:
+        name: cypress_${{ matrix.game }}
+        path: Server/x64/Release - ${{ matrix.game }}/cypress_${{ matrix.game }}.dll
+
+  launcher:
+    needs: server
     runs-on: windows-latest
 
     steps:
@@ -25,38 +49,25 @@ jobs:
       with:
         dotnet-version: 8.0.x
 
+    - name: Download server DLLs
+      uses: actions/download-artifact@v4
+      with:
+        path: publish/CypressLauncher
+        merge-multiple: true
+
     - name: Build CypressLauncher
       shell: pwsh
-      run: dotnet publish CypressLauncher.csproj -c Release -f net8.0-windows -o publish/CypressLauncher /p:LangVersion=latest
-
-    - name: Download Server DLLs
-      shell: pwsh
-      env:
-        GH_TOKEN: ${{ secrets.CYPRESS_SERVER_TOKEN }}
-      run: |
-        $stage = "publish/CypressLauncher"
-        $headers = @{ 'User-Agent' = 'CypressCI'; 'Authorization' = "Bearer $env:GH_TOKEN"; 'Accept' = 'application/vnd.github+json' }
-        # download latest server dlls from PvZ-Cypress/Server releases
-        $release = Invoke-RestMethod -Uri "https://api.github.com/repos/PvZ-Cypress/Server/releases/latest" -Headers $headers
-        foreach ($asset in $release.assets) {
-          if ($asset.name -match '\.dll$') {
-            $dlHeaders = @{ 'Authorization' = "Bearer $env:GH_TOKEN"; 'Accept' = 'application/octet-stream'; 'User-Agent' = 'CypressCI' }
-            Invoke-WebRequest -Uri $asset.url -OutFile "$stage/$($asset.name)" -Headers $dlHeaders
-            Write-Host "Downloaded $($asset.name)"
-          }
-        }
+      run: dotnet publish Launcher/CypressLauncher.csproj -c Release -f net8.0-windows -o publish/CypressLauncher /p:LangVersion=latest
 
     - name: Stage release artifacts
       shell: pwsh
       run: |
         $stage = "publish/CypressLauncher"
-
-        Copy-Item "courgette.exe" $stage -ErrorAction SilentlyContinue
-        Copy-Item "GW2.patch" $stage
-        Copy-Item "BFN.Patch" $stage
-
-        if (Test-Path "Docs") {
-          Copy-Item "Docs" "$stage/README" -Recurse
+        Copy-Item "Launcher/courgette.exe" $stage -ErrorAction SilentlyContinue
+        Copy-Item "Launcher/GW2.patch" $stage
+        Copy-Item "Launcher/BFN.Patch" $stage
+        if (Test-Path "Launcher/Docs") {
+          Copy-Item "Launcher/Docs" "$stage/README" -Recurse
         }
 
     - name: Upload build artifacts

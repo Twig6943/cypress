@@ -2,9 +2,9 @@
 #include <string>
 #include <format>
 
-#define CYPRESS_VERSION_MAJOR 0
+#define CYPRESS_VERSION_MAJOR 2
 #define CYPRESS_VERSION_MINOR 0
-#define CYPRESS_VERSION_PATCH 1
+#define CYPRESS_VERSION_PATCH 0
 
 #ifdef _DEBUG
 #define CYPRESS_BUILD_CONFIG "Debug"
