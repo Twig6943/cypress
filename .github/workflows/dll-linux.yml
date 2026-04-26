@@ -6,6 +6,9 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        game: [GW1, GW2, BFN]
 
     container:
       image: archlinux:latest
@@ -40,13 +43,7 @@ jobs:
           ./msvc-wine/vsdownload.py --accept-license --dest $WINDOWS_SDK_PATH
           ./msvc-wine/install.sh $WINDOWS_SDK_PATH
           export PATH=$WINDOWS_SDK_PATH/bin/x64:$PATH
-          cmake --fresh . -B build -DCMAKE_BUILD_TYPE=Release -DCYPRESS_GW1=ON -DWINDOWS_SDK_PATH=$WINDOWS_SDK_PATH -DCMAKE_TOOLCHAIN_FILE=./toolchain-linux-winsdk.cmake
-          make -C build -j$(nproc)
-
-          cmake --fresh . -B build -DCMAKE_BUILD_TYPE=Release -DCYPRESS_GW2=ON -DWINDOWS_SDK_PATH=$WINDOWS_SDK_PATH -DCMAKE_TOOLCHAIN_FILE=./toolchain-linux-winsdk.cmake
-          make -C build -j$(nproc)
-
-          cmake --fresh . -B build -DCMAKE_BUILD_TYPE=Release -DCYPRESS_BFN=ON -DWINDOWS_SDK_PATH=$WINDOWS_SDK_PATH -DCMAKE_TOOLCHAIN_FILE=./toolchain-linux-winsdk.cmake
+          cmake --fresh -S . -B build -DCMAKE_BUILD_TYPE=Release -DCYPRESS_${{ matrix.game }}=ON -DWINDOWS_SDK_PATH=$WINDOWS_SDK_PATH -DCMAKE_TOOLCHAIN_FILE=./toolchain-linux-winsdk.cmake
           make -C build -j$(nproc)
           EOF
 
