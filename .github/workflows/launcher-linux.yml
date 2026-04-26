@@ -35,11 +35,13 @@ jobs:
       - name: Build project
         run: |
           set -x
+          cd Launcher
           dotnet build --configuration Release --no-restore
 
       - name: Publish for Linux ${{ matrix.arch }} (self-contained)
         run: |
           set -x
+          cd Launcher
           dotnet publish CypressLauncher.csproj -c Release -f net8.0-windows -o build /p:LangVersion=latest
           dotnet publish CypressLauncher.csproj \
             -c Release \
