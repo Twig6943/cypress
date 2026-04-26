@@ -30,6 +30,7 @@ jobs:
       - name: Restore dependencies
         run: |
           set -x
+          cd Launcher
           dotnet restore
 
       - name: Build project
