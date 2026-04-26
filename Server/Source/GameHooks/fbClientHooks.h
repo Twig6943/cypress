@@ -1,7 +1,7 @@
 #pragma once
 #include <MemUtil.h>
 #ifdef CYPRESS_BFN
-#include <EASTL/new_string.h>
+#include <new_string.h>
 #else
 #include <EASTL/string.h>
 #endif

@@ -1,17 +1,17 @@
 #pragma once
 #include <MemUtil.h>
-#include <fb/engine/ServerEventSyncEntity.h>
-#include <fb/engine/EventSyncReachedClientMessage.h>
+#include <fb/Engine/ServerEventSyncEntity.h>
+#include <fb/Engine/EventSyncReachedClientMessage.h>
 
 #include <unordered_map>
 #include <unordered_set>
 #include <string>
 DECLARE_HOOK(
-	fb_ServerEventSyncEntity_Listener_onMessage, 
-	__fastcall, 
+	fb_ServerEventSyncEntity_Listener_onMessage,
+	__fastcall,
 	void,
 
-	fb::ServerEventSyncEntity::Listener* a1, 
+	fb::ServerEventSyncEntity::Listener* a1,
 	fb::EventSyncReachedClientMessage* message
 );
 
@@ -46,7 +46,10 @@ static std::unordered_map<std::string, std::unordered_set<uint32_t>> g_eventSync
 	{"Gameplay/GameModes/GameModeLogic/CinematicLogic/GameModeLogic_CinematicLogic", { 42199542}}, //server side input restrictions
 	{"Gameplay/ComplexObjects/ZombieTeleporterExit", { 63478245}},
 	{"Gameplay/ComplexObjects/PlantTeleporterExit", { 65825568}},
-	{"Gameplay/Logic/OnInteractionHelperPrefab", {59695446}},
+	//{"Gameplay/Logic/OnInteractionHelperPrefab", {59695446}}, - in theory should stop mishap with interactions such as teleporters and gnome bombs etc.
+
+		// qa debug crazy options - prevents berserker, healing auras, and crazy regeneration from being enabled in qadebug.
+	{"Gameplay/GameModes/GameModePrefabs/CrazyOptions/CrazyOptions_Prefab", { 37379582, 63903114, 60042275}},
 };
 
 inline bool isEventSyncBlacklisted(const char* prefab, uint32_t flags)

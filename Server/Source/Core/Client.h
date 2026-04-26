@@ -60,22 +60,6 @@ namespace Cypress
 		std::string m_hwid;
 		Cypress::HardwareFingerprint m_fingerprint;
 
-		// game relay bridge for UDP-over-TCP tunneling
-		SOCKET m_gameRelayBridgeSock = INVALID_SOCKET;
-		SOCKET m_gameRelaySock = INVALID_SOCKET;
-		int m_gameRelayBridgePort = 0;
-		bool m_gameRelayRunning = false;
-		std::thread m_gameRelayBridgeThread;
-		std::thread m_gameRelayRecvThread;
-		std::mutex m_gameRelaySendMutex;
-		sockaddr_in m_gameRelayGameAddr{};
-		bool m_haveGameAddr = false;
-
-		void StartGameRelay(const std::string& relayHost, int relayPort, const std::string& proxyKey);
-		void StopGameRelay();
-		void GameRelayBridgeLoop();
-		void GameRelayRecvLoop();
-
 		friend class Program;
 	};
 }

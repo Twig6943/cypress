@@ -1,0 +1,39 @@
+name: Build Launcher
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v6
+
+      - name: Install .NET SDK via Chocolatey
+        shell: pwsh
+        run: |
+          choco install dotnet-8.0-sdk -y
+
+      - name: Build project
+        run: |
+          cd Launcher
+          dotnet build --configuration Release --no-restore
+
+      - name: Publish
+        run: |
+          dotnet publish CypressLauncher.csproj -c Release -f net8.0-windows -o build /p:LangVersion=latest
+          dotnet publish CypressLauncher.csproj \
+            -c Release \
+            -f net8.0-windows \
+            -r win-x64 \
+            --self-contained false \
+            -o build
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v6
+        with:
+          name: Launcher
+          path: |
+            Launcher/bin/Release/net8.0-windows/win-x64

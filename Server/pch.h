@@ -4,7 +4,7 @@
 #include "framework.h"
 #include <cstdint>
 #include <MemUtil.h>
-#include <MinHook/MinHook.h>
+#include <MinHook.h>
 #include <Core/VersionInfo.h>
 #include <Core/Logging.h>
 #include <Core/Assert.h>

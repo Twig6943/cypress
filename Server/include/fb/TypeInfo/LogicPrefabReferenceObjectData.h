@@ -11,7 +11,7 @@ namespace fb
 		char pad_0000[0x18];
 		fb::Asset* m_blueprint;
 
-		static constexpr class ClassInfo* c_TypeInfo = reinterpret_cast<ClassInfo*>(0x1430DC8F0);
+		static inline class ClassInfo* c_TypeInfo = reinterpret_cast<ClassInfo*>(0x1430DC8F0);
 	}; //size = 0xA0
 } //namespace fb
 

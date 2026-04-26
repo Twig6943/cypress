@@ -1,7 +1,7 @@
 #pragma once
 #include <EASTL/string.h>
 #ifdef CYPRESS_BFN
-#include <EASTL/new_string.h>
+#include <new_string.h>
 #include <fb/SecureReason.h>
 #endif
 

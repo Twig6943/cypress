@@ -2,7 +2,7 @@
 #include <vector>
 #include <string.h>
 #include <fstream>
-#include <json.hpp>
+#include <nlohmann/json.hpp>
 #include <random>
 
 struct PlaylistLevelSetup
@@ -62,7 +62,7 @@ public:
 
             if(playlistJson.contains("Loadscreen_LevelDescriptionOverride"))
                 m_loadscreenLevelDescription = playlistJson["Loadscreen_LevelDescriptionOverride"].get<std::string>();
-            
+
 #ifndef CYPRESS_BFN
             if (playlistJson.contains("Loadscreen_UIAssetPathOverride"))
                 m_loadscreenUIAssetPath = playlistJson["Loadscreen_UIAssetPathOverride"].get<std::string>();
@@ -192,7 +192,7 @@ pick_mode:
         }
 
         m_currentSetup.GameMode = randomMode.second;
-        
+
         int numLevelsForMode = m_mixedConfig.AvailableLevelsForModes[randomMode.first.c_str()].size();
 
         std::uniform_int_distribution<> levelDist(0, numLevelsForMode - 1);
@@ -216,7 +216,7 @@ pick_level:
             m_currentSetup.Loadscreen_GamemodeName = m_loadscreenGamemodeName;
 #else
         const std::string& randomMode = m_mixedConfig.AvailableModes[modeDist(m_mtRNG)];
-        // Check if the random pick is the same mode 
+        // Check if the random pick is the same mode
         // Need to check without the last character because of alt modes for alt coop maps, such as Domination0 and Domination1
         if (CompareStrWithoutLastCharacter(m_currentSetup.GameMode, randomMode))
         {
@@ -224,7 +224,7 @@ pick_level:
         }
 
         m_currentSetup.GameMode = randomMode;
-        
+
         int numLevelsForMode = m_mixedConfig.AvailableLevelsForModes[randomMode.c_str()].size();
 
         std::uniform_int_distribution<> levelDist(0, numLevelsForMode - 1);
@@ -272,13 +272,13 @@ pick_level:
         return &m_currentSetup;
     }
 
-    const PlaylistLevelSetup* GetSetup(int index) 
+    const PlaylistLevelSetup* GetSetup(int index)
     {
         if (IsMixedMode())
             return GetMixedLevelSetup(false);
 
-        return &m_setups[index]; 
-    
+        return &m_setups[index];
+
     }
 
     void SetCurrentSetup(int index) {

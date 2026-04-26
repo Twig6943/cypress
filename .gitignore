@@ -66,3 +66,24 @@ ipch/
 *.cachefile
 *.VC.db
 *.VC.VC.opendb
+
+# Kate
+*.kate-swp
+
+[Bb]uild/
+__cmake_systeminformation
+.ninja_deps
+.ninja_lock
+.ninja_log
+build.ninja
+CMakeCache.txt
+Makefile
+CMakeFiles/
+my_msvc/
+msvc-wine/
+_deps/
+cmake_install.cmake
+
+cypress_GW1.lib
+cypress_GW2.lib
+cypress_BFN.lib

@@ -1,7 +1,7 @@
 #pragma once
 #include <EASTL/string.h>
 #ifdef CYPRESS_BFN
-#include <EASTL/new_string.h>
+#include <new_string.h>
 #endif
 #include <EASTL/vector.h>
 #include <fb/Engine/ServerPlayer.h>
@@ -64,7 +64,7 @@ namespace fb
             auto func = reinterpret_cast<void(*)(ServerPeer*, void*, void*)>(0x140627D40);
             func(this, networkableMessage, filter);
 #endif
-            
+
         }
 
         ServerGhostManager* GetGhostManager()

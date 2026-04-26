@@ -42,6 +42,6 @@ namespace fb
 		fb::EntityBus* m_entityBus;
 		fb::EventSyncEntityData* m_data;
 
-		static constexpr class ClassInfo* c_TypeInfo = reinterpret_cast<ClassInfo*>(0x14313A970);
+		static inline class ClassInfo* c_TypeInfo = reinterpret_cast<ClassInfo*>(0x14313A970);
 	};
 }

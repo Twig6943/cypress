@@ -74,11 +74,6 @@ namespace Kyber
 
     SocketAddr GetProxyAddress(const char* proxyAddress)
     {
-        // if the tunnel redirected the address, use the fresh env var
-        const char* override = std::getenv("CYPRESS_PROXY_ADDRESS");
-        if (override && override[0] != '\0')
-            proxyAddress = override;
-
         SocketAddr addr(proxyAddress, GetProxyPort());
         // Log the resolved address for diagnostics
         const sockaddr_in* resolved = reinterpret_cast<const sockaddr_in*>(addr.Data());
@@ -104,11 +99,7 @@ namespace Kyber
     {
         std::string registration = std::string("CYPRESS_PROXY_REGISTER|SERVER|") + std::string(proxyKey == nullptr ? "" : proxyKey);
         SocketAddr relayAddress = GetProxyAddress(proxyAddress);
-        int ret = sendto(socketHandle, registration.c_str(), (int)registration.size(), 0, (sockaddr*)relayAddress.Data(), sizeof(sockaddr_in));
-        if (ret < 0)
-            CYPRESS_LOGMESSAGE(LogLevel::Error, "SendProxyRegistration: sendto failed ({})", WSAGetLastError());
-        else
-            CYPRESS_LOGMESSAGE(LogLevel::Info, "SendProxyRegistration: sent {} bytes", ret);
+        sendto(socketHandle, registration.c_str(), (int)registration.size(), 0, (sockaddr*)relayAddress.Data(), sizeof(sockaddr_in));
     }
 
     void PrependProxyKey(uint8_t*& buffer, int& bufferSize, const char* proxyKey)
@@ -205,7 +196,7 @@ namespace Kyber
             return recvSize;
         }
 
-        // filter relay ACK packets, not game data
+        // Filter relay ACK packets - not game data
         static const char ackMsg[] = "CYPRESS_PROXY_ACK";
         constexpr int ackLen = sizeof(ackMsg) - 1;
         if (recvSize == ackLen && memcmp(buffer, ackMsg, ackLen) == 0)
@@ -241,13 +232,8 @@ namespace Kyber
             recvSize -= 6;
         }
 
-        // don't overwrite peer address for serverbound proxied sockets -
-        // keeps frostbite seeing the original peer instead of the relay addr
-        if (!m_info.isProxied || m_direction != ProtocolDirection::Serverbound)
-        {
-            m_peerAddress.SetData(&addr, sizeof(sockaddr_in));
-            m_peerAddressIsValid = true;
-        }
+        m_peerAddress.SetData(&addr, sizeof(sockaddr_in));
+        m_peerAddressIsValid = true;
 
         //printf("DEBUG++: Received %d bytes \n", recvSize);
 
@@ -295,70 +281,31 @@ namespace Kyber
 
         if (m_info.isProxied)
         {
-            // if a UDP bridge is active, route to the socket's own bind IP + bridge port
-            // so the server socket (e.g. on 172.30.160.1) sends to itself rather than loopback
-            const char* bridgePort = std::getenv("CYPRESS_BRIDGE_PORT");
-            if (bridgePort && bridgePort[0] != '\0')
-            {
-                char bindIP[INET_ADDRSTRLEN] = {};
-                inet_ntop(AF_INET, &addr->sin_addr, bindIP, sizeof(bindIP));
-                int bp = atoi(bridgePort);
-                m_cachedProxyAddr = SocketAddr(bindIP, bp > 0 ? (uint16_t)bp : GetProxyPort());
-                CYPRESS_LOGMESSAGE(LogLevel::Info, "Proxy address (bridge): {}:{}", bindIP, bp);
-            }
-            else
-            {
-                m_cachedProxyAddr = GetProxyAddress(m_info.proxyAddress);
-            }
+            m_cachedProxyAddr = GetProxyAddress(m_info.proxyAddress);
         }
 
         if (m_info.isProxied && m_direction == ProtocolDirection::Clientbound)
         {
-            // send registration to the cached proxy addr (may be bridge or remote relay)
-            std::string registration = std::string("CYPRESS_PROXY_REGISTER|SERVER|") + std::string(m_info.proxyKey ? m_info.proxyKey : "");
-            int ret = sendto(m_socketHandle, registration.c_str(), (int)registration.size(), 0,
-                (sockaddr*)m_cachedProxyAddr.Data(), sizeof(sockaddr_in));
-            if (ret < 0)
-                CYPRESS_LOGMESSAGE(LogLevel::Error, "SendProxyRegistration: sendto failed ({})", WSAGetLastError());
-            else
-                CYPRESS_LOGMESSAGE(LogLevel::Info, "SendProxyRegistration: sent {} bytes", ret);
+            SendProxyRegistration(m_socketHandle, m_info.proxyAddress, m_info.proxyKey);
+            CYPRESS_LOGMESSAGE(LogLevel::Info, "Sent proxy registration to {}", m_info.proxyAddress);
 
             // Keep the NAT hole open with periodic keepalives
-            std::string keepaliveReg = registration;
+            std::string keepaliveAddr(m_info.proxyAddress);
+            std::string keepaliveKey(m_info.proxyKey ? m_info.proxyKey : "");
             m_keepaliveRunning = true;
-            m_keepaliveThread = std::thread([this, keepaliveReg]() {
+            m_keepaliveThread = std::thread([this, keepaliveAddr, keepaliveKey]() {
                 while (m_keepaliveRunning) {
                     for (int i = 0; i < 200 && m_keepaliveRunning; ++i)
                         Sleep(100);
                     if (m_keepaliveRunning && m_socketHandle != INVALID_SOCKET) {
-                        sendto(m_socketHandle, keepaliveReg.c_str(), (int)keepaliveReg.size(), 0,
-                            (sockaddr*)m_cachedProxyAddr.Data(), sizeof(sockaddr_in));
+                        SendProxyRegistration(m_socketHandle, keepaliveAddr.c_str(),
+                            keepaliveKey.empty() ? nullptr : keepaliveKey.c_str());
                     }
                 }
             });
         }
 
         return true;
-    }
-
-    void UDPSocket::RefreshProxyAddress()
-    {
-        if (m_info.isProxied)
-        {
-            const char* bridgePort = std::getenv("CYPRESS_BRIDGE_PORT");
-            if (bridgePort && bridgePort[0] != '\0')
-            {
-                const sockaddr_in* bound = reinterpret_cast<const sockaddr_in*>(m_address.Data());
-                char bindIP[INET_ADDRSTRLEN] = {};
-                inet_ntop(AF_INET, &bound->sin_addr, bindIP, sizeof(bindIP));
-                int bp = atoi(bridgePort);
-                m_cachedProxyAddr = SocketAddr(bindIP, bp > 0 ? (uint16_t)bp : GetProxyPort());
-            }
-            else
-            {
-                m_cachedProxyAddr = GetProxyAddress(m_info.proxyAddress);
-            }
-        }
     }
 
     bool UDPSocket::Connect(const SocketAddr& address, bool blocking)

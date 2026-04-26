@@ -3,7 +3,7 @@
 #include <MemUtil.h>
 #ifdef CYPRESS_BFN
 #include <fb/SecureReason.h>
-#include <EASTL/new_string.h>
+#include <new_string.h>
 #else
 #include <fb/TypeInfo/SecureReason.h>
 #include <EASTL/string.h>

@@ -35,7 +35,7 @@ namespace fb
 		bool ReSyncSettingsOnChanged; //0x7D
 		char pad_0x7E[0x2];
 
-		static constexpr class TypeInfo* c_TypeInfo = reinterpret_cast<TypeInfo*>(0x1430D7DB0);
+		static inline class TypeInfo* c_TypeInfo = reinterpret_cast<TypeInfo*>(0x1430D7DB0);
 
 		//scan the five SettingEntityData's fields for the setting name
 		const char* getSettingName()

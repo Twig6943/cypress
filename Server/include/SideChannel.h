@@ -6,10 +6,7 @@
 #include <mutex>
 #include <thread>
 #include <chrono>
-#include <atomic>
-#include <optional>
-#include <json.hpp>
-#include <CypressIdentity.h>
+#include <nlohmann/json.hpp>
 
 namespace Cypress
 {
@@ -34,22 +31,10 @@ namespace Cypress
 		std::string challengeNonce; // server sends this on connect, client must prove hwid ownership
 		std::string modChallengeNonce; // server sends this when client claims mod, client must HMAC with token
 		std::chrono::steady_clock::time_point modChallengeTime{}; // rate limit mod challenges
-
-		// identity (ed25519 account)
-		std::string accountId;
-		std::string identityUsername;
-		std::string identityNickname;
-		std::string eaPid;
-		bool identityVerified = false;
-		bool pendingIdentity = false; // waiting for identity proof before sending authResult
-		bool pendingClaimMod = false; // deferred mod claim until identity completes
-		std::string identityChallengeNonce; // sent after jwt verified, client signs with ed25519 private key
-		std::vector<uint8_t> identityPubKey; // from jwt pk_fingerprint lookup or inline
 	};
 
 	using SideChannelHandler = std::function<void(const nlohmann::json& msg, SideChannelPeer& peer)>;
 	using SideChannelAuthCallback = std::function<void(SideChannelPeer& peer)>;
-	using AuthRejectCallback = std::function<void(const std::string& name, const std::string& reason)>;
 	using PlayerNamesCallback = std::function<std::vector<std::string>()>;
 
 	struct ServerInfo
@@ -58,8 +43,6 @@ namespace Cypress
 		std::string icon; // base64 JPEG
 		bool modded = false;
 		std::string modpackUrl;
-		std::string level;
-		std::string mode;
 	};
 
 	class SideChannelServer
@@ -75,19 +58,13 @@ namespace Cypress
 
 		void Broadcast(const nlohmann::json& msg);
 		void BroadcastEvent(const nlohmann::json& msg); // subscribed peers only
-		void BroadcastToMods(const nlohmann::json& msg); // moderator peers only
 		void SendTo(const std::string& playerName, const nlohmann::json& msg);
 		void SendToPeer(SideChannelPeer& peer, const nlohmann::json& msg);
 
 		void SetHandler(const std::string& type, SideChannelHandler handler);
 		void SetOnModeratorAuth(SideChannelAuthCallback cb) { m_onModeratorAuth = cb; }
 		void SetOnAuth(SideChannelAuthCallback cb) { m_onAuth = cb; }
-		void SetOnAuthReject(AuthRejectCallback cb) { m_onAuthReject = cb; }
 		void SetPlayerNamesCallback(PlayerNamesCallback cb) { m_playerNamesCb = cb; }
-
-		// call from main thread to snapshot player names safely
-		void UpdatePlayerNamesCache();
-		std::vector<std::string> GetCachedPlayerNames() const;
 
 		void AddModerator(const std::string& hwid);
 		void RemoveModerator(const std::string& hwid);
@@ -97,8 +74,9 @@ namespace Cypress
 		bool SaveModerators(const std::string& path) const;
 
 		std::vector<std::pair<std::string, std::string>> GetConnectedPeers() const; // {name, hwid}
-		std::optional<SideChannelPeer> FindPeerByName(const std::string& name);
-		bool HasPeerByName(const std::string& name);
+		SideChannelPeer* FindPeerByName(const std::string& name);
+
+		static bool IsNameValid(const std::string& name, std::string& reason);
 
 		// server info for unauthenticated queries
 		void SetServerInfo(const ServerInfo& info) { std::lock_guard<std::recursive_mutex> lock(m_peersMutex); m_serverInfo = info; }
@@ -108,7 +86,6 @@ namespace Cypress
 		void AcceptLoop();
 		void ClientLoop(SOCKET clientSock);
 		void ProcessLine(SideChannelPeer& peer, const std::string& line);
-		void FinalizeAuth(SideChannelPeer& peer, bool claimMod);
 		void RemovePeer(SOCKET sock);
 
 		SOCKET m_listenSock = INVALID_SOCKET;
@@ -126,24 +103,8 @@ namespace Cypress
 		std::vector<std::string> m_moderatorHWIDs;
 		SideChannelAuthCallback m_onModeratorAuth;
 		SideChannelAuthCallback m_onAuth;
-		AuthRejectCallback m_onAuthReject;
 		PlayerNamesCallback m_playerNamesCb;
-		mutable std::mutex m_playerNamesMutex;
-		std::vector<std::string> m_cachedPlayerNames;
 		ServerInfo m_serverInfo;
-
-		// identity verification
-		uint8_t m_masterPubKey[32] = {};
-		bool m_masterPubKeyLoaded = false;
-		Cypress::Identity::BanList m_banList;
-		mutable std::mutex m_banListMutex;
-		std::atomic<bool> m_banListRunning{false};
-		std::thread m_banListThread;
-
-		void LoadMasterPubKey();
-		void StartBanListSync();
-		void StopBanListSync();
-		void FetchBanList();
 	};
 
 	class SideChannelClient
@@ -154,7 +115,6 @@ namespace Cypress
 
 		bool Connect(const std::string& serverIP, int port = 0);
 		void Disconnect();
-		void ForceClose(); // close socket without joining, safe from recv thread
 		bool IsConnected() const { return m_connected; }
 
 		void Send(const nlohmann::json& msg);
@@ -227,26 +187,17 @@ namespace Cypress
 		bool Start(const std::string& relayHost, int relayPort, const std::string& proxyKey, int localPort);
 		void Stop();
 		bool IsRunning() const { return m_running; }
-		int GetBridgePort() const { return m_udpBridgePort; }
 
 	private:
 		void TunnelLoop();
 		void ClientReadLoop(uint32_t clientId, SOCKET localSock);
-		void UdpBridgeLoop();
 		void SendFrame(uint8_t cmd, uint32_t clientId, const char* data = nullptr, uint32_t dataLen = 0);
 		bool RecvExact(char* buf, int len);
 
 		SOCKET m_tunnelSock = INVALID_SOCKET;
-		SOCKET m_udpBridgeSock = INVALID_SOCKET;
 		int m_localPort = 0;
-		int m_udpBridgePort = 0;
-		int m_gameUdpPort = 0;
-		sockaddr_in m_gameServerAddr{};
-		bool m_haveGameServerAddr = false;
-		SOCKET m_udpInjectSock = INVALID_SOCKET;
 		bool m_running = false;
 		std::thread m_thread;
-		std::thread m_udpBridgeThread;
 		std::mutex m_writeMutex;
 		std::mutex m_clientsMutex;
 		std::unordered_map<uint32_t, SOCKET> m_localClients;

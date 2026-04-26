@@ -1,6 +1,6 @@
 #pragma once
 #include <cstdint>
-#include <MinHook/MinHook.h>
+#include <MinHook.h>
 
 template <typename T>
 static T ptrread(void* ptr, size_t offset)

@@ -5,73 +5,12 @@
 #include <fb/Engine/Server.h>
 #include <SideChannel.h>
 #include <mutex>
-#include <fstream>
 
 #ifndef CYPRESS_BFN
 HWND* g_listBox = (HWND*)OFFSET_LISTBOX;
 #endif
 
 static std::mutex g_stdoutMutex;
-static std::mutex g_fileLogMutex;
-static std::ofstream g_logFile;
-
-#ifdef _DEBUG
-LogLevel g_cypressLogLevel = LogLevel::Debug;
-#else
-LogLevel g_cypressLogLevel = LogLevel::Info;
-#endif
-
-void Cypress_SetLogLevel(LogLevel level)
-{
-	g_cypressLogLevel = level;
-}
-
-LogLevel Cypress_ParseLogLevel(const char* str)
-{
-	if (!str) return LogLevel::Info;
-	std::string s(str);
-	if (s == "trace") return LogLevel::Trace;
-	if (s == "debug") return LogLevel::Debug;
-	if (s == "info") return LogLevel::Info;
-	if (s == "warning" || s == "warn") return LogLevel::Warning;
-	if (s == "error") return LogLevel::Error;
-	return LogLevel::Info;
-}
-
-void Cypress_InitFileLog()
-{
-	std::lock_guard<std::mutex> lock(g_fileLogMutex);
-	if (g_logFile.is_open()) return;
-
-	char path[MAX_PATH];
-	GetModuleFileNameA(NULL, path, MAX_PATH);
-	std::string dir(path);
-	auto slash = dir.find_last_of("\\/");
-	if (slash != std::string::npos) dir = dir.substr(0, slash);
-	std::string logPath = dir + "\\cypress.log";
-
-	g_logFile.open(logPath, std::ios::out | std::ios::trunc);
-}
-
-void Cypress_WriteFileLog(const char* msg, LogLevel logLevel)
-{
-	std::lock_guard<std::mutex> lock(g_fileLogMutex);
-	if (!g_logFile.is_open()) return;
-
-	SYSTEMTIME st;
-	GetLocalTime(&st);
-	char ts[32];
-	snprintf(ts, sizeof(ts), "%02d:%02d:%02d.%03d", st.wHour, st.wMinute, st.wSecond, st.wMilliseconds);
-
-	g_logFile << "[" << ts << "] [" << Cypress_LogLevelToStr(logLevel) << "] " << msg << "\n";
-	g_logFile.flush();
-}
-
-void Cypress_CloseFileLog()
-{
-	std::lock_guard<std::mutex> lock(g_fileLogMutex);
-	if (g_logFile.is_open()) g_logFile.close();
-}
 
 bool Cypress_IsEmbeddedMode()
 {

@@ -1,0 +1,47 @@
+name: Build & Release
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v6
+
+      - name: Install Visual Studio Build Tools
+        shell: pwsh
+        run: |
+          choco install visualstudio2026buildtools `
+            --package-parameters "--add Microsoft.VisualStudio.Workload.VCTools --includeRecommended" `
+            -y
+          choco install cmake -y
+
+      - name: Build
+        shell: cmd
+        run: |
+          call "%ProgramFiles(x86)%\Microsoft Visual Studio\18\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
+          cd Server
+          mkdir build
+          cd build
+          cmake --fresh .. -G "Visual Studio 18 2026" -DCYPRESS_GW1=ON
+          cmake --build . --config Release
+
+          cmake --fresh .. -G "Visual Studio 18 2026" -DCYPRESS_GW2=ON
+          cmake --build . --config Release
+
+          cmake --fresh .. -G "Visual Studio 18 2026" -DCYPRESS_BFN=ON
+          cmake --build . --config Release
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v6
+        with:
+          name: dll
+          path: |
+            Server/build/Release/cypress_GW1.dll
+            Server/build/Release/cypress_GW2.dll
+            Server/build/Release/cypress_BFN.dll

@@ -132,7 +132,7 @@ DEFINE_HOOK(
 		// if a cypress server is running on this machine, connect side channel via localhost
 		// instead of the server's public/LAN IP (side channel only listens on loopback,
 		// and most routers don't support hairpin NAT)
-		// skip discovery when using a relay, the proxy env vars handle routing
+		// skip discovery when using a relay - the proxy env vars handle routing
 		std::string sideChannelIP = ip;
 		int sideChannelPort = 0;
 		const char* proxyKey = std::getenv("CYPRESS_PROXY_KEY");

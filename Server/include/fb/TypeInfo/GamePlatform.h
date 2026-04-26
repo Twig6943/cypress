@@ -35,7 +35,7 @@ namespace fb
 
 	const char* toString(GamePlatform platform)
 	{
-		return reinterpret_cast<const char*(*)(GamePlatform)>(CYPRESS_GW_SELECT(0x141449180, 0x141DE68D0))(platform);
+		return reinterpret_cast<const char*(*)(GamePlatform)>(CYPRESS_GW_SELECT(0x141449180, 0x141DE68D0, 0x0))(platform);
 	}
 
 } //namespace fb

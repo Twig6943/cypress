@@ -10,7 +10,7 @@ namespace fb
 	public:
 		const char* Name; //0x10
 
-		static constexpr class ClassInfo* c_TypeInfo = reinterpret_cast<ClassInfo*>(0x1430B42D0);
+		static inline class ClassInfo* c_TypeInfo = reinterpret_cast<ClassInfo*>(0x1430B42D0);
 	}; //size = 0x18
 } //namespace fb
 

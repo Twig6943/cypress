@@ -72,10 +72,10 @@ void Cypress::GW1Module::InitDedicatedServerPatches(Cypress::Server* pServer)
 
 	MemSet(0x140C700E9, 0x90, 4); //something related to presence
 
-	// stub BackendOnMessage, prevents calls into non-existent backend (from GardenGate)
+	// stub BackendOnMessage - prevents calls into non-existent backend (from GardenGate)
 	MemSet(0x140B2D2A0, 0xC3, 1);
 
-	// disable ClientInactivityTimer, prevents idle kick on dedicated
+	// disable ClientInactivityTimer - prevents idle kick on dedicated
 	MemSet(0x140C00470, 0xC3, 1);
 
 	/*

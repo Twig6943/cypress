@@ -3,3 +3,7 @@
 *.patch filter=lfs diff=lfs merge=lfs -text
 *.Patch filter=lfs diff=lfs merge=lfs -text
 courgette.exe filter=lfs diff=lfs merge=lfs -text
+
+*.bat text eol=crlf
+*.ps1 text eol=crlf
+*.sh text eol=lf
