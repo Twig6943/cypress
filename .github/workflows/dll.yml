@@ -8,11 +8,13 @@ on:
 jobs:
   build:
     runs-on: windows-latest
+    strategy:
+      matrix:
+        game: [GW1, GW2, BFN]
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v6
-
       - name: Install Visual Studio Build Tools
         shell: pwsh
         run: |
@@ -27,21 +29,11 @@ jobs:
           call "%ProgramFiles(x86)%\Microsoft Visual Studio\18\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
           cd Server
           mkdir build
-          cd build
-          cmake --fresh .. -G "Visual Studio 18 2026" -DCYPRESS_GW1=ON
-          cmake --build . --config Release
-
-          cmake --fresh .. -G "Visual Studio 18 2026" -DCYPRESS_GW2=ON
-          cmake --build . --config Release
-
-          cmake --fresh .. -G "Visual Studio 18 2026" -DCYPRESS_BFN=ON
-          cmake --build . --config Release
+          cmake --fresh build -G "Visual Studio 18 2026" -DCYPRESS_${{ matrix.game }}=ON
+          cmake --build build --config Release
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v6
         with:
-          name: dll
-          path: |
-            Server/build/Release/cypress_GW1.dll
-            Server/build/Release/cypress_GW2.dll
-            Server/build/Release/cypress_BFN.dll
+          name: cypress_${{ matrix.game }}
+          path: Server/build/Release/cypress_${{ matrix.game }}.dll

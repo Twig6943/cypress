@@ -70,7 +70,7 @@ ipch/
 # Kate
 *.kate-swp
 
-[Bb]uild/
+[Bb]uild*/
 __cmake_systeminformation
 .ninja_deps
 .ninja_lock
