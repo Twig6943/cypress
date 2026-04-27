@@ -4,14 +4,21 @@ on:
   workflow_dispatch:
     inputs:
       release_tag:
-        description: Release tag (example: 1.0.0)
+        description: "Release tag (example: 1.0.0)"
         required: false
+        type: string
       prerelease:
-        description: Mark as prerelease
+        description: "Mark as prerelease"
         required: false
         default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+
   pull_request:
-    branches: [main]
+    branches:
+      - main
 
 permissions:
   contents: write
@@ -19,6 +26,7 @@ permissions:
 jobs:
   server:
     runs-on: windows-latest
+
     strategy:
       matrix:
         game: [GW1, GW2, BFN]
@@ -37,6 +45,7 @@ jobs:
 
       - name: Build Server - ${{ matrix.game }}
         working-directory: Server
+        shell: pwsh
         run: |
           cmake --fresh . -B build -G "Visual Studio 18 2026" -DCYPRESS_${{ matrix.game }}=ON
           cmake --build build --config Release
@@ -70,7 +79,8 @@ jobs:
 
       - name: Build CypressLauncher
         shell: pwsh
-        run: dotnet publish Launcher/CypressLauncher.csproj -c Release -f net8.0-windows -o publish/CypressLauncher /p:LangVersion=latest
+        run: |
+          dotnet publish Launcher/CypressLauncher.csproj -c Release -f net8.0-windows -o publish/CypressLauncher /p:LangVersion=latest
 
       - name: Stage release artifacts
         shell: pwsh
@@ -90,14 +100,14 @@ jobs:
           path: publish/CypressLauncher
 
       - name: Create release archive
-        if: github.event_name == 'workflow_dispatch' && github.event.inputs.release_tag != ''
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.release_tag != '' }}
         shell: pwsh
         run: |
           $tag = "${{ github.event.inputs.release_tag }}"
           Compress-Archive -Path "publish/CypressLauncher/*" -DestinationPath "Cypress-$tag.zip"
 
       - name: Create GitHub Release
-        if: github.event_name == 'workflow_dispatch' && github.event.inputs.release_tag != ''
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.release_tag != '' }}
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.event.inputs.release_tag }}
