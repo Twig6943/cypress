@@ -566,6 +566,7 @@ namespace Cypress
 				else if (key == "PreventBlacklistedEventSyncs") ac.SetPreventBlacklistedEventSyncs(bval);
 				else if (key == "PreventInvalidLoadouts") ac.SetPreventInvalidLoadouts(bval);
 				else if (key == "PreventClientLevelLoading") ac.SetPreventClientLevelLoading(bval);
+				else if (key == "PreventSyncSettingsFromClients") ac.SetPreventSyncSettingsFromClients(bval);
 				else if (key == "PreventAliveWeaponChange") ac.SetPreventAliveWeaponChange(bval);
 				else { CYPRESS_LOGTOSERVER(LogLevel::Warning, "Unknown anticheat setting: {}", key); return; }
 				CYPRESS_LOGTOSERVER(LogLevel::Info, "Anticheat {} = {}", key, bval ? "true" : "false");

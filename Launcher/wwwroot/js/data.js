@@ -653,6 +653,7 @@ const GAME_DATA = {
         modifierCategories: [
             { name: 'Server Settings', desc: 'Core server configuration', mods: [
                 { key: 'SyncedGame.EnableFriendlyFire', name: 'Friendly Fire', desc: 'Enable friendly fire for all players', type: 'bool' },
+				{ key: 'Server.OutgoingFrequency', name: 'Tick Rate', desc: 'Frequency in which the server updates the game state', type: 'number', placeholder: '15' },
                 { key: 'SyncedGame.DifficultyIndex', name: 'Difficulty', desc: 'Set the game difficulty for Ops modes', type: 'slider', min: 0, max: 4, step: 1, defaultValue: 0, labels: ['MP','Easy','Normal','Hard','CRAZY'] },
                 { key: 'BFServer.InactivityTimeOut', name: 'Idle Timeout', desc: 'Seconds before an idle player is kicked', type: 'number', placeholder: 'seconds' },
                 { key: 'BFServer.TeamKillCountForKick', name: 'TKs Before Kick', desc: 'Team kills before auto-kick', type: 'number', placeholder: 'kills' },
@@ -736,6 +737,7 @@ const GAME_DATA = {
             { name: 'Server & Match Settings', desc: '', mods: [
                 { key: 'SyncedGame.EnableFriendlyFire', name: 'Friendly Fire', desc: 'Allow damaging teammates', type: 'bool' },
                 { key: 'PVZServer.InActivityTimeOut', name: 'Idle Timeout', desc: 'Seconds before kicking idle players', type: 'number', placeholder: 'seconds' },
+				{ key: 'Server.OutgoingFrequency', name: 'Tick Rate', desc: 'Frequency in which the server updates the game state', type: 'number', placeholder: '15' },
                 { key: 'PVZServer.KickIdlePlayers', name: 'Kick Idle Players', desc: 'Whether to kick players for inactivity', type: 'bool' },
                 { key: 'GameMode.StoredDifficultyIndex', name: 'Difficulty', desc: 'Affects Ops mode difficulty', type: 'slider', min: 0, max: 4, step: 1, defaultValue: 0, labels: ['MP','Easy','Normal','Hard','CRAZY'] },
                 { key: 'GameMode.ModeTeamId', name: 'Force Team', desc: 'Force all players onto one team (for Boss Hunt / Infinity Time)', type: 'select', options: [{v:'',n:'Default'},{v:'1',n:'Zombies'},{v:'2',n:'Plants'}] },
@@ -831,6 +833,7 @@ const GAME_DATA = {
             { name: 'Server & Match', desc: 'Match configuration', mods: [
                 { key: 'GameMode.OverridePreRoundTime', name: 'Pre-round Time', desc: 'Seconds before match starts', type: 'number', placeholder: 'seconds' },
                 { key: 'GameMode.OverrideRoundStartPlayerCount', name: 'Min Players to Start', desc: 'Players needed before round begins', type: 'number', placeholder: 'count' },
+				{ key: 'Server.OutgoingFrequency', name: 'Tick Rate', desc: 'Frequency in which the server updates the game state', type: 'number', placeholder: '30' },
             ]},
             { name: 'AI & Bots', desc: 'Bot behavior and composition', mods: [
                 { key: 'GameMode.BackfillMpWithAI', name: 'AI Backfill', desc: 'Fill empty slots with AI bots', type: 'bool' },
