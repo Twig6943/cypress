@@ -29,10 +29,12 @@ jobs:
 
     - name: Build Server - ${{ matrix.game }}
       working-directory: Server
-      run: cmake --fresh .. -G "Visual Studio 18 2026" -DCYPRESS_${{ matrix.game }}=ON
+      run: |
+      cmake --fresh . -B build -G "Visual Studio 18 2026" -DCYPRESS_${{ matrix.game }}=ON
+      cmake --build build --config Release
 
     - name: Upload DLL
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: cypress_${{ matrix.game }}
         path: Server/build/cypress_${{ matrix.game }}.dll
