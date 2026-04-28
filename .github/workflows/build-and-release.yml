@@ -1,9 +1,21 @@
 name: Build & Release
 
 on:
-  push:
-    branches: [main]
-    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Release tag (example: 1.0.0)"
+        required: false
+        type: string
+      prerelease:
+        description: "Mark as prerelease"
+        required: false
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+
   pull_request:
     branches: [main]
 
@@ -18,83 +30,79 @@ jobs:
         game: [GW1, GW2, BFN]
 
     steps:
-    - name: Checkout
-      uses: actions/checkout@v6
+      - name: Checkout
+        uses: actions/checkout@v6
 
-    - name: Install Visual Studio Build Tools
-      shell: pwsh
-      run: |
-        choco install cmake -y
+      - name: Build Server - ${{ matrix.game }}
+        working-directory: Server
+        shell: pwsh
+        run: |
+          cmake --fresh . -B build -G "Visual Studio 18 2026" -DCYPRESS_${{ matrix.game }}=ON
+          cmake --build build --config Release
 
-    - name: Build Server - ${{ matrix.game }}
-      working-directory: Server
-      shell: cmd
-      run: |
-        call "%ProgramFiles%\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
-        mkdir build
-        cmake --fresh -S . -B build -DCYPRESS_${{ matrix.game }}=ON
-        cmake --build build --config Release
-
-    - name: Upload DLL
-      uses: actions/upload-artifact@v7
-      with:
-        name: cypress_${{ matrix.game }}
-        path: Server/build/Release/cypress_${{ matrix.game }}.dll
+      - name: Upload DLL
+        uses: actions/upload-artifact@v6
+        with:
+          name: cypress_${{ matrix.game }}
+          path: Server/build/Release/cypress_${{ matrix.game }}.dll
 
   launcher:
     needs: server
     runs-on: windows-latest
 
     steps:
-    - name: Checkout
-      uses: actions/checkout@v6
-      with:
-        lfs: true
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          lfs: true
 
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v5
-      with:
-        dotnet-version: 8.0.x
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 8.0.x
 
-    - name: Download server DLLs
-      uses: actions/download-artifact@v8
-      with:
-        path: publish/CypressLauncher
-        merge-multiple: true
+      - name: Download server DLLs
+        uses: actions/download-artifact@v8
+        with:
+          path: publish/CypressLauncher
+          merge-multiple: true
 
-    - name: Build CypressLauncher
-      shell: pwsh
-      run: dotnet publish Launcher/CypressLauncher.csproj -c Release -f net8.0-windows -o publish/CypressLauncher /p:LangVersion=latest
+      - name: Build CypressLauncher
+        shell: pwsh
+        run: |
+          dotnet publish Launcher/CypressLauncher.csproj -c Release -f net8.0-windows -o publish/CypressLauncher /p:LangVersion=latest
 
-    - name: Stage release artifacts
-      shell: pwsh
-      run: |
-        $stage = "publish/CypressLauncher"
-        Copy-Item "Launcher/courgette.exe" $stage -ErrorAction SilentlyContinue
-        Copy-Item "Launcher/GW2.patch" $stage
-        Copy-Item "Launcher/BFN.Patch" $stage
-        if (Test-Path "Launcher/Docs") {
-          Copy-Item "Launcher/Docs" "$stage/README" -Recurse
-        }
+      - name: Stage release artifacts
+        shell: pwsh
+        run: |
+          $stage = "publish/CypressLauncher"
+          Copy-Item "Launcher/courgette.exe" $stage -ErrorAction SilentlyContinue
+          Copy-Item "Launcher/GW2.patch" $stage
+          Copy-Item "Launcher/BFN.Patch" $stage
+          if (Test-Path "Launcher/Docs") {
+            Copy-Item "Launcher/Docs" "$stage/README" -Recurse
+          }
 
-    - name: Upload build artifacts
-      uses: actions/upload-artifact@v7
-      with:
-        name: Cypress
-        path: publish/CypressLauncher
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: Cypress
+          path: publish/CypressLauncher
 
-    - name: Create release archive
-      if: startsWith(github.ref, 'refs/tags/v')
-      shell: pwsh
-      run: |
-        $tag = "${{ github.ref_name }}"
-        Compress-Archive -Path "publish/CypressLauncher/*" -DestinationPath "Cypress-$tag.zip"
+      - name: Create release archive
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.release_tag != '' }}
+        shell: pwsh
+        run: |
+          $tag = "${{ github.event.inputs.release_tag }}"
+          Compress-Archive -Path "publish/CypressLauncher/*" -DestinationPath "Cypress-$tag.zip"
 
-    - name: Create GitHub Release
-      if: startsWith(github.ref, 'refs/tags/v')
-      uses: softprops/action-gh-release@v2
-      with:
-        files: Cypress-*.zip
-        generate_release_notes: true
-        draft: false
-        prerelease: false
+      - name: Create GitHub Release
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.release_tag != '' }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.release_tag }}
+          name: ${{ github.event.inputs.release_tag }}
+          files: Cypress-*.zip
+          generate_release_notes: true
+          draft: false
+          prerelease: ${{ github.event.inputs.prerelease }}
