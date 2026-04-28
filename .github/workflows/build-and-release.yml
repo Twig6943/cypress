@@ -37,7 +37,7 @@ jobs:
         working-directory: Server
         shell: pwsh
         run: |
-          cmake --fresh . -B build -G "Visual Studio 18 2026" -DCYPRESS_${{ matrix.game }}=ON
+          cmake --fresh . -B build -G "Visual Studio 17 2022" -DCYPRESS_${{ matrix.game }}=ON
           cmake --build build --config Release
 
       - name: Upload DLL
