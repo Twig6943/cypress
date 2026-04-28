@@ -1,17 +1,17 @@
 #pragma once
 #include <MemUtil.h>
-#include <fb/engine/ServerEventSyncEntity.h>
-#include <fb/engine/EventSyncReachedClientMessage.h>
+#include <fb/Engine/ServerEventSyncEntity.h>
+#include <fb/Engine/EventSyncReachedClientMessage.h>
 
 #include <unordered_map>
 #include <unordered_set>
 #include <string>
 DECLARE_HOOK(
-	fb_ServerEventSyncEntity_Listener_onMessage, 
-	__fastcall, 
+	fb_ServerEventSyncEntity_Listener_onMessage,
+	__fastcall,
 	void,
 
-	fb::ServerEventSyncEntity::Listener* a1, 
+	fb::ServerEventSyncEntity::Listener* a1,
 	fb::EventSyncReachedClientMessage* message
 );
 

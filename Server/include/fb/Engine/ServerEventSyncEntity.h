@@ -12,7 +12,7 @@ namespace fb
 	{
 		uintptr_t m_owner; //msg + 0x58
 		uint32_t m_bus; //msg + 0x60
-		uint32_t m_data; //msg + 0x48 
+		uint32_t m_data; //msg + 0x48
 
 		//this was inlined somewhere, not sure what it does but it's needed
 		//for the map iterator
@@ -42,6 +42,6 @@ namespace fb
 		fb::EntityBus* m_entityBus;
 		fb::EventSyncEntityData* m_data;
 
-		static constexpr class ClassInfo* c_TypeInfo = reinterpret_cast<ClassInfo*>(0x14313A970);
+		static inline class ClassInfo* c_TypeInfo = reinterpret_cast<ClassInfo*>(0x14313A970);
 	};
 }

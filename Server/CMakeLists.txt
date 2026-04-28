@@ -67,7 +67,9 @@ target_include_directories(cypress PRIVATE
 )
 
 # Precompiled headers
-target_precompile_headers(cypress PRIVATE pch.h)
+target_precompile_headers(cypress PRIVATE
+    "$<$<COMPILE_LANGUAGE:CXX>:${CMAKE_CURRENT_SOURCE_DIR}/pch.h>"
+)
 
 # Defines
 target_compile_definitions(cypress PRIVATE

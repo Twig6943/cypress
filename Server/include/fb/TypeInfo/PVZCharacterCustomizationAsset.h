@@ -52,6 +52,6 @@ namespace fb
 			return result;
 		}
 
-		static constexpr class ClassInfo* c_TypeInfo = reinterpret_cast<ClassInfo*>(0x1430D3F70);
+		static inline class ClassInfo* c_TypeInfo = reinterpret_cast<ClassInfo*>(0x1430D3F70);
 	};
 }
