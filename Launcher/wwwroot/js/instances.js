@@ -997,7 +997,7 @@ function updatePlayerList() {
 
         // freecam button (GW2 only, server instances only)
         let freecamBtn = '';
-        if (inst.isServer && inst.game === 'GW2') {
+        if (inst.isServer) {
             const safeName = escapeHtml(player.name).replace(/'/g, "\\'");
             freecamBtn = '<button class="icon-btn icon-btn-small icon-btn-primary" onclick="srvFreecamPlayer(\'' + safeName + '\')" title="Toggle Freecam">' +
                 '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>' +

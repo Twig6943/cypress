@@ -79,7 +79,17 @@ public partial class MessageHandler
 		if (failed) return;
 
 		Environment.SetEnvironmentVariable("EARtPLaunchCode", GetRtPLaunchCode().ToString());
-		Environment.SetEnvironmentVariable("ContentId", "1026482");
+
+		string contentId = "0";
+		if (m_selectedGame == PVZGame.GW1)
+			contentId = "1011216";
+		else if (m_selectedGame == PVZGame.GW2)
+			contentId = "1026482";
+		else if (m_selectedGame == PVZGame.BFN)
+			contentId = "1036445";
+
+		Environment.SetEnvironmentVariable("ContentId", contentId);
+
 		bool useMod = useMods && !string.IsNullOrEmpty(modPack);
 		Environment.SetEnvironmentVariable("GAME_DATA_DIR", useMod ? Path.Combine(m_gameDirectory, "ModData", modPack) : null);
 
@@ -199,7 +209,17 @@ public partial class MessageHandler
 		if (failed) return;
 
 		Environment.SetEnvironmentVariable("EARtPLaunchCode", GetRtPLaunchCode().ToString());
-		Environment.SetEnvironmentVariable("ContentId", "1026482");
+
+		string contentId = "0";
+		if (m_selectedGame == PVZGame.GW1)
+			contentId = "1011216";
+		else if (m_selectedGame == PVZGame.GW2)
+			contentId = "1026482";
+		else if (m_selectedGame == PVZGame.BFN)
+			contentId = "1036445";
+
+		Environment.SetEnvironmentVariable("ContentId", contentId);
+
 		bool useMod = useMods && !string.IsNullOrEmpty(modPack);
 		Environment.SetEnvironmentVariable("GAME_DATA_DIR", useMod ? Path.Combine(m_gameDirectory, "ModData", modPack) : null);
 		bool playlistFlag = usePlaylist && !string.IsNullOrEmpty(playlist);
@@ -491,7 +511,17 @@ public partial class MessageHandler
 				}
 
 				Environment.SetEnvironmentVariable("EARtPLaunchCode", null);
-				Environment.SetEnvironmentVariable("ContentId", null);
+
+				string contentId = "0";
+				if (m_selectedGame == PVZGame.GW1)
+					contentId = "1011216";
+				else if (m_selectedGame == PVZGame.GW2)
+					contentId = "1026482";
+				else if (m_selectedGame == PVZGame.BFN)
+					contentId = "1036445";
+
+				Environment.SetEnvironmentVariable("ContentId", contentId);
+
 				Environment.SetEnvironmentVariable("GW_LAUNCH_ARGS", null);
 				Environment.SetEnvironmentVariable("CYPRESS_IDENTITY_JWT", null);
 				Environment.SetEnvironmentVariable("CYPRESS_IDENTITY_KEY", null);
