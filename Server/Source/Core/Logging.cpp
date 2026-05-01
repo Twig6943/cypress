@@ -15,11 +15,24 @@ static std::mutex g_stdoutMutex;
 static std::mutex g_fileLogMutex;
 static std::ofstream g_logFile;
 
+LogLevel Cypress_ParseLogLevel(const char* str);
+
+static LogLevel Cypress_GetInitialLogLevel()
+{
 #ifdef _DEBUG
-LogLevel g_cypressLogLevel = LogLevel::Debug;
+	LogLevel level = LogLevel::Debug;
 #else
-LogLevel g_cypressLogLevel = LogLevel::Info;
+	LogLevel level = LogLevel::Info;
 #endif
+
+	const char* env = std::getenv("CYPRESS_LOG_LEVEL");
+	if (env && *env)
+		level = Cypress_ParseLogLevel(env);
+
+	return level;
+}
+
+LogLevel g_cypressLogLevel = Cypress_GetInitialLogLevel();
 
 void Cypress_SetLogLevel(LogLevel level)
 {
@@ -30,6 +43,9 @@ LogLevel Cypress_ParseLogLevel(const char* str)
 {
 	if (!str) return LogLevel::Info;
 	std::string s(str);
+	for (char& c : s)
+		c = (char)tolower((unsigned char)c);
+
 	if (s == "trace") return LogLevel::Trace;
 	if (s == "debug") return LogLevel::Debug;
 	if (s == "info") return LogLevel::Info;
@@ -231,7 +247,7 @@ void Cypress_LogToServer(const char* msg, const char* fileName, int lineNumber, 
 
     if (listBox == NULL)
         std::cout << "\x1B[36m[SrvLog]" << formattedLog.c_str() << "\x1B[0m";
-    else 
+    else
     {
         if (pServer->GetServerLogEnabled())
         {
@@ -256,7 +272,7 @@ void Cypress_LogToServer(const char* msg, const char* fileName, int lineNumber, 
 
     if (*g_listBox == NULL)
         std::cout << "\x1B[36m[SrvLog]" << formattedLog.c_str() << "\x1B[0m";
-    else 
+    else
     {
         if(g_program->GetServer()->GetServerLogEnabled())
         {
