@@ -6,6 +6,29 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
+# Get Git commit info
+execute_process(
+    COMMAND git rev-parse --short HEAD
+    OUTPUT_VARIABLE GIT_HASH
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    ERROR_QUIET
+)
+
+execute_process(
+    COMMAND git show -s --format=%cd --date=short
+    OUTPUT_VARIABLE GIT_DATE
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    ERROR_QUIET
+)
+
+if(NOT GIT_HASH)
+  set(GIT_HASH "unknown")
+endif()
+
+if(NOT GIT_DATE)
+  set(GIT_DATE "unknown")
+endif()
+
 include(FetchContent)
 
 # Dependencies
@@ -23,7 +46,7 @@ FetchContent_Declare(
   GIT_TAG 4e576b099d2ef475262459aa8a888ebed5788807
 )
 
-###EABase
+### EABase
 FetchContent_Declare(
   EABase
   GIT_REPOSITORY https://github.com/kitsilanosoftware/EABase.git
@@ -121,6 +144,8 @@ target_precompile_headers(cypress PRIVATE
 target_compile_definitions(cypress PRIVATE
     $<$<CONFIG:Debug>:_DEBUG>
     $<$<CONFIG:Release>:NDEBUG>
+    GIT_HASH="${GIT_HASH}"
+    GIT_DATE="${GIT_DATE}"
     GW2SERVERPROJECT_EXPORTS
     _WINDOWS
     _USRDLL
@@ -157,12 +182,4 @@ target_link_libraries(cypress PRIVATE
 # Optimization flags
 target_compile_options(cypress PRIVATE
     $<$<CONFIG:Release>:/O2>
-)
-
-# Custom step (TouchVersionInfo)
-add_custom_command(
-    TARGET cypress
-    PRE_BUILD
-    COMMAND ${CMAKE_COMMAND} -E touch
-        ${CMAKE_SOURCE_DIR}/Source/Core/VersionInfo.cpp
 )
