@@ -1,14 +1,11 @@
 #nullable enable
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Net.Http;
 using System.Security.Cryptography;
 using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
-using System.Web;
 using Newtonsoft.Json.Linq;
 #if WINDOWS
 using Microsoft.Win32;
@@ -72,11 +69,10 @@ public partial class MessageHandler
 		}
 	}
 
-	private CancellationTokenSource? m_oauthPollCts;
-
 	private void OnEaLogin()
 	{
-		// generate pkce challenge
+		CleanupLegacyQrcHandler();
+
 		var verifierBytes = new byte[32];
 		RandomNumberGenerator.Fill(verifierBytes);
 		m_codeVerifier = Base64UrlEncode(verifierBytes);
@@ -85,7 +81,6 @@ public partial class MessageHandler
 		string codeChallenge = Base64UrlEncode(challengeHash);
 
 		string pcSign = GeneratePcSign();
-
 		string authUrl = $"{EA_AUTH_URL}?client_id={EA_CLIENT_ID}"
 			+ $"&response_type=code"
 			+ $"&redirect_uri={Uri.EscapeDataString(EA_REDIRECT_URI)}"
@@ -93,87 +88,74 @@ public partial class MessageHandler
 			+ $"&code_challenge_method=S256"
 			+ $"&pc_sign={Uri.EscapeDataString(pcSign)}";
 
-		// register qrc:// protocol handler so the browser can redirect back to us
-		string callbackFile = Path.Combine(GetAppdataDir(), "ea_oauth_callback.tmp");
-		try { File.Delete(callbackFile); } catch { }
-		RegisterQrcProtocol(callbackFile);
-
-		// open system browser for EA login
-		try
-		{
-			Process.Start(new ProcessStartInfo(authUrl) { UseShellExecute = true });
-		}
-		catch (Exception ex)
-		{
-			Send(new JObject { ["type"] = "authLoginResult", ["ok"] = false, ["error"] = "Failed to open browser: " + ex.Message });
+		if (TryStartEmbeddedEaLogin(authUrl))
 			return;
-		}
 
-		// poll for the callback file
-		m_oauthPollCts?.Cancel();
-		m_oauthPollCts = new CancellationTokenSource();
-		var ct = m_oauthPollCts.Token;
-
-		Task.Run(async () =>
-		{
-			try
-			{
-				// poll for up to 5 minutes
-				for (int i = 0; i < 600 && !ct.IsCancellationRequested; i++)
-				{
-					await Task.Delay(500, ct);
-
-					if (!File.Exists(callbackFile))
-						continue;
-
-					string callbackUrl = File.ReadAllText(callbackFile).Trim().Trim('"');
-					try { File.Delete(callbackFile); } catch { }
-
-					// extract query string directly, Uri doesn't like qrc:// scheme
-					int qIdx = callbackUrl.IndexOf('?');
-					var query = qIdx >= 0 ? HttpUtility.ParseQueryString(callbackUrl.Substring(qIdx)) : HttpUtility.ParseQueryString("");
-					string? code = query["code"];
-					string? error = query["error"];
-
-					if (!string.IsNullOrEmpty(error) || string.IsNullOrEmpty(code))
-					{
-						Send(new JObject { ["type"] = "authLoginResult", ["ok"] = false, ["error"] = error ?? "No authorization code received" });
-						return;
-					}
-
-					await ExchangeCodeForToken(code!, EA_REDIRECT_URI);
-					return;
-				}
-
-				if (!ct.IsCancellationRequested)
-					Send(new JObject { ["type"] = "authLoginResult", ["ok"] = false, ["error"] = "Login timed out" });
-			}
-			catch (OperationCanceledException) { }
-			catch (Exception ex)
-			{
-				Send(new JObject { ["type"] = "authLoginResult", ["ok"] = false, ["error"] = ex.Message });
-			}
-		}, ct);
+		Send(new JObject { ["type"] = "authLoginResult", ["ok"] = false, ["error"] = "embedded ea login is unavailable on this platform" });
 	}
 
-	private void RegisterQrcProtocol(string callbackFile)
+	private void CleanupLegacyQrcHandler()
 	{
 #if WINDOWS
 		try
 		{
-			// write a small batch script that dumps the url arg to a file
-			string handlerScript = Path.Combine(GetAppdataDir(), "qrc_handler.cmd");
-			File.WriteAllText(handlerScript,
-				$"@echo off\r\necho %1 > \"{callbackFile}\"\r\n");
-
-			using var key = Registry.CurrentUser.CreateSubKey(@"Software\Classes\qrc");
-			key.SetValue("", "URL:Cypress EA Login");
-			key.SetValue("URL Protocol", "");
-
-			using var cmdKey = key.CreateSubKey(@"shell\open\command");
-			cmdKey.SetValue("", $"\"{handlerScript}\" \"%1\"");
+			Registry.CurrentUser.DeleteSubKeyTree(@"Software\Classes\qrc", throwOnMissingSubKey: false);
 		}
 		catch { }
+
+		try
+		{
+			string handlerScript = Path.Combine(GetAppdataDir(), "qrc_handler.cmd");
+			if (File.Exists(handlerScript))
+				File.Delete(handlerScript);
+		}
+		catch { }
+#endif
+	}
+
+	private bool TryStartEmbeddedEaLogin(string authUrl)
+	{
+#if WINDOWS
+		try
+		{
+			Task.Run(async () =>
+			{
+				try
+				{
+					var result = await EaLoginWindow.ShowAsync(authUrl, EA_REDIRECT_URI);
+					if (result.Cancelled)
+					{
+						Send(new JObject { ["type"] = "authLoginResult", ["ok"] = false, ["error"] = "Login cancelled" });
+						return;
+					}
+
+					if (!string.IsNullOrEmpty(result.Error))
+					{
+						Send(new JObject { ["type"] = "authLoginResult", ["ok"] = false, ["error"] = result.Error });
+						return;
+					}
+
+					if (string.IsNullOrEmpty(result.Code))
+					{
+						Send(new JObject { ["type"] = "authLoginResult", ["ok"] = false, ["error"] = "No authorization code received" });
+						return;
+					}
+
+					await ExchangeCodeForToken(result.Code, EA_REDIRECT_URI);
+				}
+				catch (Exception ex)
+				{
+					Send(new JObject { ["type"] = "authLoginResult", ["ok"] = false, ["error"] = ex.Message });
+				}
+			});
+			return true;
+		}
+		catch
+		{
+			return false;
+		}
+#else
+		return false;
 #endif
 	}
 

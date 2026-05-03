@@ -69,6 +69,10 @@ function getGameLabel(g) {
     return { GW1: 'GW1', GW2: 'GW2', BFN: 'BFN' }[g] || g;
 }
 
+function supportsFreecam(game) {
+    return game === 'GW1' || game === 'GW2' || game === 'BFN';
+}
+
 // check if user has moderator access to a client instance (local mod or global mod override)
 function hasModAccess(inst) {
     if (!inst || inst.isServer) return false;
@@ -244,11 +248,18 @@ function onInstanceOutput(pid, line) {
         // client-side: moderator status from side-channel
         if (parsed.t === 'modStatus') {
             inst.isModerator = (parsed.id === 1);
-            // show/hide moderator tab if this instance is selected
+            updateInstanceList();
             if (selectedInstancePid === pid) {
                 var showMod = hasModAccess(inst);
                 document.getElementById('modPlayersTabBtn').style.display = showMod ? '' : 'none';
                 document.getElementById('modServerTabBtn').style.display = showMod ? '' : 'none';
+                document.getElementById('modBroadcastRow').style.display = (showMod && inst.game !== 'BFN') ? '' : 'none';
+                if (showMod) {
+                    updateModeratorTab();
+                } else if (document.getElementById('itab-mod-players')?.classList.contains('active') ||
+                           document.getElementById('itab-mod-server')?.classList.contains('active')) {
+                    switchInstanceTab('logs');
+                }
             }
             return;
         }
@@ -464,7 +475,7 @@ function updateInstanceList() {
         const typeClass = inst.isServer ? 'server' : 'client';
         const typeIcon = inst.isServer ? SVG_ICONS.server : SVG_ICONS.client;
         const badgeClass = inst.exited ? 'exited' : (inst.isExternal ? 'external' : typeClass);
-        const badgeLabel = inst.exited ? 'EXITED' : (inst.isExternal ? 'EXTERNAL' : (inst.isServer ? 'SERVER' : 'CLIENT'));
+        const badgeLabel = inst.exited ? 'EXITED' : (inst.isExternal ? 'EXTERNAL' : (inst.isServer ? 'SERVER' : (inst.isModerator ? 'MOD' : 'CLIENT')));
         const gameIcon = GAME_ICONS[inst.game] || GAME_ICONS.GW2;
         const displayName = getInstanceDisplayName(parseInt(pid));
 
@@ -489,6 +500,9 @@ function updateInstanceList() {
             metaParts.push(pCount + ' player' + (pCount !== 1 ? 's' : ''));
         } else if (inst.username) {
             metaParts.push(escapeHtml(inst.username));
+        }
+        if (!inst.isServer && inst.isModerator) {
+            metaParts.push('Local Mod');
         }
 
         // build subtitle (MOTD for server, empty for client)
@@ -995,9 +1009,9 @@ function updatePlayerList() {
             '</button>';
         }
 
-        // freecam button (GW2 only, server instances only)
+        // freecam button
         let freecamBtn = '';
-        if (inst.isServer) {
+        if (inst.isServer && supportsFreecam(inst.game)) {
             const safeName = escapeHtml(player.name).replace(/'/g, "\\'");
             freecamBtn = '<button class="icon-btn icon-btn-small icon-btn-primary" onclick="srvFreecamPlayer(\'' + safeName + '\')" title="Toggle Freecam">' +
                 '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>' +
@@ -1549,7 +1563,7 @@ function updateModClientView(inst) {
         }
 
         var safeName = escapeHtml(name).replace(/'/g, "\\'");
-        var isGW2 = inst.game === 'GW2';
+        var canFreecam = supportsFreecam(inst.game);
         var playerData = inst.scPlayers ? inst.scPlayers[name] : null;
         var peerData = inst.sideChannelPeers ? inst.sideChannelPeers[name] : null;
         var playerEaPid = peerData ? (peerData.eaPid || '') : '';
@@ -1579,7 +1593,7 @@ function updateModClientView(inst) {
             '<div class="player-card-actions">' +
                 copyPidBtn +
                 copyHwidBtn +
-                (isGW2 ? '<button class="icon-btn icon-btn-small icon-btn-primary" onclick="modFreecamPlayer(\'' + safeName + '\')" title="Toggle Freecam">' +
+                (canFreecam ? '<button class="icon-btn icon-btn-small icon-btn-primary" onclick="modFreecamPlayer(\'' + safeName + '\')" title="Toggle Freecam">' +
                     '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>' +
                 '</button>' : '') +
                 '<button class="icon-btn icon-btn-small" onclick="modKickPlayer(\'' + safeName + '\')" title="Kick">' +
