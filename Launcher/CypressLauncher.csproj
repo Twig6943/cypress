@@ -60,6 +60,7 @@
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="SkiaSharp" Version="2.88.9" />
     <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="2.88.9" Condition="$([MSBuild]::IsOSPlatform('Linux'))" />
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.3405.78" Condition="'$(TargetFramework)' == 'net8.0-windows'" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="wwwroot\**" />
@@ -72,5 +73,9 @@
   <!-- patch icon into apphost exe (SDK doesn't do this for framework-dependent builds) -->
   <Target Name="PatchAppHostIcon" AfterTargets="Build" Condition="'$(OS)' == 'Windows_NT' and Exists('$(OutputPath)$(AssemblyName).exe')">
     <Exec Command="&quot;$(MSBuildProjectDirectory)\tools\rcedit-x64.exe&quot; &quot;$(OutputPath)$(AssemblyName).exe&quot; --set-icon &quot;$(MSBuildProjectDirectory)\assets\cypressicons\ico\Burbank-CypressIcon.ico&quot;" />
+  </Target>
+  <Target Name="PruneWebView2WpfArtifacts" AfterTargets="Build;Publish" Condition="'$(TargetFramework)' == 'net8.0-windows'">
+    <Delete Files="$(OutputPath)Microsoft.Web.WebView2.Wpf.dll;$(OutputPath)Microsoft.Web.WebView2.Wpf.xml" />
+    <Delete Files="$(PublishDir)Microsoft.Web.WebView2.Wpf.dll;$(PublishDir)Microsoft.Web.WebView2.Wpf.xml" Condition="'$(PublishDir)' != ''" />
   </Target>
 </Project>

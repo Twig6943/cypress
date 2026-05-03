@@ -15,7 +15,7 @@ function startEaLogin() {
     const btn = document.getElementById('authLoginBtn');
     const status = document.getElementById('authStatus');
     btn.disabled = true;
-    status.textContent = 'Opening EA login in your browser...';
+    status.textContent = 'Opening EA sign-in window...';
     status.className = 'auth-status waiting';
     send('eaLogin');
 }
