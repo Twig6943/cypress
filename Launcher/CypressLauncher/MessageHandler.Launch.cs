@@ -78,6 +78,8 @@ public partial class MessageHandler
 		}
 		if (failed) return;
 
+		Environment.SetEnvironmentVariable("EARtPLaunchCode", GetRtPLaunchCode().ToString());
+
 		string contentId = "0";
 		if (m_selectedGame == PVZGame.GW1)
 			contentId = "1011216";
@@ -86,7 +88,10 @@ public partial class MessageHandler
 		else if (m_selectedGame == PVZGame.BFN)
 			contentId = "1036445";
 
+		Environment.SetEnvironmentVariable("ContentId", contentId);
+
 		bool useMod = useMods && !string.IsNullOrEmpty(modPack);
+		Environment.SetEnvironmentVariable("GAME_DATA_DIR", useMod ? Path.Combine(m_gameDirectory, "ModData", modPack) : null);
 
 		// use gamePort from serverInfo if provided, so clients connect to the right port when multiple servers run
 		string serverIPOnly = effectiveServerIP;
@@ -112,23 +117,15 @@ public partial class MessageHandler
 		if (!string.IsNullOrWhiteSpace(additionalArgs))
 			launchArgs += " " + additionalArgs;
 
+		Environment.SetEnvironmentVariable("GW_LAUNCH_ARGS", launchArgs);
 		if (m_identityJwt == null) LoadIdentityFromDisk();
 		m_identityKey ??= LoadOrCreateIdentityKey();
+		Environment.SetEnvironmentVariable("CYPRESS_IDENTITY_JWT", m_identityJwt);
+		Environment.SetEnvironmentVariable("CYPRESS_IDENTITY_KEY", GetIdentityPrivateKeyHex());
 		try { File.AppendAllText(Path.Combine(Path.GetTempPath(), "cypress_jwt_debug.txt"), $"{DateTime.Now:HH:mm:ss} CLIENT launch jwt={(m_identityJwt != null ? "present(" + m_identityJwt.Length + ")" : "NULL")}\n"); } catch {}
 		if (!CopyServerDLL()) return;
 
-		// env vars
-		var extraEnv = new Dictionary<string, string?>
-		{
-			["EARtPLaunchCode"]      = GetRtPLaunchCode().ToString(),
-			["ContentId"]            = contentId,
-			["GAME_DATA_DIR"]        = useMod ? Path.Combine(m_gameDirectory, "ModData", modPack) : null,
-			["GW_LAUNCH_ARGS"]       = launchArgs,
-			["CYPRESS_IDENTITY_JWT"] = m_identityJwt,
-			["CYPRESS_IDENTITY_KEY"] = GetIdentityPrivateKeyHex(),
-		};
-
-		LaunchGame(exeName, launchArgs, extraEnv: extraEnv);
+		LaunchGame(exeName, launchArgs);
 	}
 
 	private void OnStartServer(JObject msg)
@@ -211,6 +208,8 @@ public partial class MessageHandler
 		}
 		if (failed) return;
 
+		Environment.SetEnvironmentVariable("EARtPLaunchCode", GetRtPLaunchCode().ToString());
+
 		string contentId = "0";
 		if (m_selectedGame == PVZGame.GW1)
 			contentId = "1011216";
@@ -219,7 +218,10 @@ public partial class MessageHandler
 		else if (m_selectedGame == PVZGame.BFN)
 			contentId = "1036445";
 
+		Environment.SetEnvironmentVariable("ContentId", contentId);
+
 		bool useMod = useMods && !string.IsNullOrEmpty(modPack);
+		Environment.SetEnvironmentVariable("GAME_DATA_DIR", useMod ? Path.Combine(m_gameDirectory, "ModData", modPack) : null);
 		bool playlistFlag = usePlaylist && !string.IsNullOrEmpty(playlist);
 
 		string launchArgs;
@@ -264,21 +266,13 @@ public partial class MessageHandler
 				launchArgs += " -Network.MaxClientCount " + playerCount + " -NetObjectSystem.MaxServerConnectionCount " + playerCount + " -Online.DirtySockMaxConnectionCount " + playerCount;
 		}
 
+		Environment.SetEnvironmentVariable("GW_LAUNCH_ARGS", launchArgs);
 		if (m_identityJwt == null) LoadIdentityFromDisk();
+		Environment.SetEnvironmentVariable("CYPRESS_IDENTITY_JWT", m_identityJwt);
 		try { File.AppendAllText(Path.Combine(Path.GetTempPath(), "cypress_jwt_debug.txt"), $"{DateTime.Now:HH:mm:ss} SERVER launch jwt={(m_identityJwt != null ? "present(" + m_identityJwt.Length + ")" : "NULL")}\n"); } catch {}
 		if (!CopyServerDLL()) return;
 
-		// env var
-		var extraEnv = new Dictionary<string, string?>
-		{
-			["EARtPLaunchCode"]      = GetRtPLaunchCode().ToString(),
-			["ContentId"]            = contentId,
-			["GAME_DATA_DIR"]        = useMod ? Path.Combine(m_gameDirectory, "ModData", modPack) : null,
-			["GW_LAUNCH_ARGS"]       = launchArgs,
-			["CYPRESS_IDENTITY_JWT"] = m_identityJwt,
-		};
-
-		LaunchGame(exeName, launchArgs, isServer: true, level: level, msg: msg, extraEnv: extraEnv);
+		LaunchGame(exeName, launchArgs, isServer: true, level: level, msg: msg);
 	}
 
 	private bool CopyServerDLL()
@@ -390,7 +384,7 @@ public partial class MessageHandler
 		return 25200;
 	}
 
-	private void LaunchGame(string exeName, string args, bool isServer = false, string level = "", JObject? msg = null, Dictionary<string, string?>? extraEnv = null)
+	private void LaunchGame(string exeName, string args, bool isServer = false, string level = "", JObject? msg = null)
 	{
 		string workingDir = isServer
 			? GetServerDataDir(m_selectedGame)
@@ -440,18 +434,6 @@ public partial class MessageHandler
 
 			// unified banlist path (shared across all games)
 			startInfo.Environment["CYPRESS_BANLIST_PATH"] = GetUnifiedBanlistPath();
-		}
-
-		// env var
-		if (extraEnv != null)
-		{
-			foreach (var (key, val) in extraEnv)
-			{
-				if (val != null)
-					startInfo.Environment[key] = val;
-				else
-					startInfo.Environment.Remove(key);
-			}
 		}
 
 		var process = new Process { StartInfo = startInfo };
@@ -528,6 +510,21 @@ public partial class MessageHandler
 					try { File.Delete(Path.Combine(m_gameDirectory, s_destDLLName)); } catch { }
 				}
 
+				Environment.SetEnvironmentVariable("EARtPLaunchCode", null);
+
+				string contentId = "0";
+				if (m_selectedGame == PVZGame.GW1)
+					contentId = "1011216";
+				else if (m_selectedGame == PVZGame.GW2)
+					contentId = "1026482";
+				else if (m_selectedGame == PVZGame.BFN)
+					contentId = "1036445";
+
+				Environment.SetEnvironmentVariable("ContentId", contentId);
+
+				Environment.SetEnvironmentVariable("GW_LAUNCH_ARGS", null);
+				Environment.SetEnvironmentVariable("CYPRESS_IDENTITY_JWT", null);
+				Environment.SetEnvironmentVariable("CYPRESS_IDENTITY_KEY", null);
 				ClearProxyEnvironment();
 				if (m_selectedGame < PVZGame.BFN)
 				{
@@ -663,7 +660,7 @@ public partial class MessageHandler
 					if (!string.IsNullOrEmpty(hbRelayCode)) heartbeatData["relayCode"] = hbRelayCode;
 				}
 
-				bool listedInBrowser = (bool)(msg?["listedInBrowser"] ?? true);
+bool listedInBrowser = (bool)(msg?["listedInBrowser"] ?? true);
 				if (listedInBrowser)
 					StartHeartbeat(heartbeatData, launchedPid);
 			});
